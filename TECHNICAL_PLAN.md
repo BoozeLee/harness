@@ -119,7 +119,7 @@ terms first), auth beyond a local token, non-git VCS.
 │ Presentation   React dashboard (Vite, TS strict) · CLI · TUI    │
 │                evidence HTML (sandboxed iframe → native views)  │
 ├─────────────────────────────────────────────────────────────────┤
-│ API            FastAPI on 127.0.0.1:8765 · bearer token · SSE   │
+│ API            FastAPI on 127.0.0.1:8766 · bearer token · SSE   │
 ├─────────────────────────────────────────────────────────────────┤
 │ Domain core    harness/engine: scan · contract · policy eval ·  │
 │  (pure py)     gate runner · scope · reviewer · evidence · pr   │
@@ -158,6 +158,8 @@ server is running.** Uninstalling the dashboard must not strand a repo.
 ### 4.2 API server (P1)
 FastAPI app, uvicorn, **bind 127.0.0.1 only**, token file `.ai-engineering/serve.token`
 (0600), all endpoints under `/api`. OpenAPI auto-served → frontend types generated.
+Port 8766 (8765 is occupied on this machine by an unrelated local service — verified
+2026-09-28; the port must be configurable anyway).
 
 | Endpoint | Core call | Notes |
 |---|---|---|
