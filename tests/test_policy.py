@@ -1,5 +1,4 @@
 import json
-import sys
 from pathlib import Path
 
 import pytest
@@ -73,4 +72,5 @@ def test_find_root_ancestors(tmp_path):
     deep = tmp_path / "a" / "b"
     deep.mkdir(parents=True)
     assert find_root(deep) == tmp_path.resolve()
-    assert find_root(Path(sys.prefix)) is None
+    # a path that cannot live inside a harness project on any sane system
+    assert find_root(Path("/usr/share/man/man1")) is None

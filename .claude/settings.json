@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git diff)",
+      "Bash(git log)",
+      "Bash(git status)",
+      "Bash(mypy .)",
+      "Bash(python3 -m pytest -q)",
+      "Bash(ruff check .)"
+    ],
+    "deny": [
+      "Read(./*.pem)",
+      "Read(./.env*)",
+      "Read(./.ssh/**)",
+      "Read(./id_rsa*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|Bash|Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"/home/kilisan/.local/bin/harness\" guard"
+          }
+        ]
+      }
+    ]
+  }
+}

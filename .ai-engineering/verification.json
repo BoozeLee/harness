@@ -1,0 +1,18 @@
+{
+  "gates": {
+    "unit": {
+      "cmd": "python3 -m pytest -q",
+      "min_risk": "low"
+    },
+    "lint": {
+      "cmd": "ruff check .",
+      "min_risk": "low"
+    },
+    "typecheck": {
+      "cmd": "mypy .",
+      "min_risk": "low"
+    }
+  },
+  "review": true,
+  "schema_version": 1
+}

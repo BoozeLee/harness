@@ -82,6 +82,8 @@ export interface AuditEvent {
 }
 
 export interface Health {
+  harness: string;
+  repo: string;
   tools: Record<string, string | null>;
 }
 

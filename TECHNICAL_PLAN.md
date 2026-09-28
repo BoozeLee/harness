@@ -261,10 +261,13 @@ P0 — **CLI hardening** (1–2 d) — exit today's failures from the tool itsel
   packaging (§4.1), strip-bug regression test, `task update/list`, `-z` parsing,
   guard JSON-deny, schema_version, pytest suite for `hit/scan/render/shell-quoting`,
   smoke = the §1 transcript re-run automatically in CI (a repo *inside* the harness:
-  pyproject with pytest+ruff+mypy → all gates).
+  pyproject with pytest+ruff+mypy → all gates). **Done (2026-09-28).**
 
 P1 — **API server** (2–3 d): endpoints read-only subset + health probe; OpenAPI;
   acceptance: `curl` drives scan→start→verify headlessly without the CLI.
+  **Done (2026-09-28):** `harness serve` on 127.0.0.1:8766, bearer token, task create +
+  verify endpoints, evidence JSON/HTML, audit; dashboard wired live (readiness 70/100,
+  deny event visible in Audit); 26 tests green via `uv run pytest`.
 
 P2 — **Runner + streaming** (3–4 d): SSE, cancel, queue, SQLite index;
   acceptance: kill a `task run` mid-flight, worktree stays clean, run row terminal.

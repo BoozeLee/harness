@@ -1,0 +1,41 @@
+{
+  "always_allow": [
+    "python3 -m pytest -q",
+    "ruff check .",
+    "mypy .",
+    "git diff",
+    "git status",
+    "git log"
+  ],
+  "ask": [
+    "git push",
+    "database migration",
+    "new dependency",
+    "edit CI",
+    "auth changes"
+  ],
+  "protected": [
+    ".env*",
+    "*.pem",
+    "id_rsa*",
+    "secrets/**"
+  ],
+  "never_read": [
+    ".env*",
+    "*.pem",
+    "id_rsa*",
+    ".ssh/**"
+  ],
+  "never_commands": [
+    "git push --force",
+    "git push -f",
+    "rm -rf /",
+    "rm -rf ~",
+    "curl | sh",
+    "| bash",
+    "git push origin main",
+    "git push origin master",
+    "--no-verify"
+  ],
+  "schema_version": 1
+}

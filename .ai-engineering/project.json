@@ -1,0 +1,23 @@
+{
+  "root": "/home/kilisan/harness",
+  "stacks": [
+    "python"
+  ],
+  "gates": {
+    "unit": "python3 -m pytest -q",
+    "lint": "ruff check .",
+    "typecheck": "mypy ."
+  },
+  "protected": [
+    ".env*",
+    "*.pem",
+    "id_rsa*",
+    "secrets/**"
+  ],
+  "ci": [],
+  "notes": [
+    "No CI workflows found."
+  ],
+  "readiness": 60,
+  "schema_version": 1
+}

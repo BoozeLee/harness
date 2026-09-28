@@ -1,0 +1,1 @@
+{"t": 1790606922, "tool": "Read", "target": "/home/kilisan/harness/.env", "decision": "deny", "blocked": true, "why": ".env is a secret path"}

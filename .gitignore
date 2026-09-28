@@ -11,4 +11,7 @@ build/
 .venv/
 web/node_modules/
 web/dist/
+web/.env
 .harness-worktrees/
+.ai-engineering/serve.token
+**/.ai-engineering/serve.token

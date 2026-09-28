@@ -60,8 +60,22 @@ def main(argv=None) -> int:
     x.add_argument("name")
     x.set_defaults(f=cmd_pr)
 
+    x = s.add_parser("serve", help="local API server for the dashboard (needs server extra)")
+    x.add_argument("--host", default="127.0.0.1")
+    x.add_argument("--port", type=int, default=8766)
+    x.set_defaults(f=_serve)
+
     a = p.parse_args(argv)
     return a.f(a) or 0
+
+
+def _serve(a) -> int:
+    try:
+        from harness.server import cmd_serve
+    except ImportError:
+        from harness.policy import die
+        die("fastapi/uvicorn missing; run `uv sync --extra server` or `uv tool install harness-agent --with fastapi --with uvicorn`")
+    return cmd_serve(a)
 
 
 if __name__ == "__main__":
