@@ -11,12 +11,15 @@ const VIEWS: Array<[string, string]> = [
 ];
 
 for (const [route, heading] of VIEWS) {
-  test(`${route} renders its heading without JS errors`, async ({ page }) => {
+  test(`${route} renders its heading without JS errors`, async ({ page }, testInfo) => {
     const errors: string[] = [];
     page.on("pageerror", (e) => errors.push(e.message));
     await page.goto(`/${route}`);
     await expect(page.locator("h1").first()).toHaveText(heading);
     expect(errors).toEqual([]);
+    // explicit file output: auto-screenshots attach in-memory only, and the P4 e2e gate
+    // archives pngs from test-results/ as evidence
+    await page.screenshot({ path: testInfo.outputPath(`${route}.png`), fullPage: true });
   });
 }
 
@@ -37,9 +40,10 @@ test("sidebar navigation visits every view by click", async ({ page }) => {
   }
 });
 
-test("runs page renders table when populated or the empty state", async ({ page }) => {
+test("runs page renders table when populated or the empty state", async ({ page }, testInfo) => {
   await page.goto("/runs");
   const empty = page.getByText(/No runs yet/);
   const rows = page.getByRole("link", { name: "stream →" });
   await expect(empty.or(rows.first())).toBeVisible({ timeout: 15_000 });
+  await page.screenshot({ path: testInfo.outputPath("runs-state.png"), fullPage: true });
 });

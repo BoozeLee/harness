@@ -68,6 +68,14 @@ def test_jsave_roundtrip_and_version_guard(tmp_path):
     assert jload(bad, versioned=False)["no"] == "schema"
 
 
+def test_gate_type_roundtrips_through_jsave(tmp_path):
+    p = tmp_path / AE / "verification.json"
+    data = {"gates": {"a": {"cmd": "x", "min_risk": "low", "type": "e2e"}}, "review": True}
+    jsave(p, data)
+    assert jload(p) == {**data, "schema_version": 1}
+    assert p.read_bytes().endswith(b"}\n")
+
+
 def test_find_root_ancestors(tmp_path):
     (tmp_path / AE).mkdir()
     (tmp_path / AE / "policy.json").write_text("{}")

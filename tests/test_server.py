@@ -108,6 +108,32 @@ def test_cancel_kills_process_group(pyrepo: Path):
     assert left.stdout.strip() == "", f"orphan survived PGID kill: {left.stdout}"
 
 
+def test_e2e_shots_served_publicly_and_html_rewritten(pyrepo: Path):
+    harness(["init"], pyrepo)
+    c = client_for(pyrepo)
+    r = c.post("/api/tasks", headers=AUTH,
+               json={"name": "shot", "goal": "g", "risk": "low", "allow": ["src/**"]})
+    assert r.status_code == 201
+    cf = pyrepo / ".ai-engineering" / "tasks" / "shot.json"
+    con = jload(cf)
+    con["gates"] = {"browser": {"cmd": "mkdir -p web/test-results/demo-a && "
+                              "head -c 64 /dev/urandom > web/test-results/demo-a/test-passed-1.png",
+                              "min_risk": "low", "type": "e2e"}}
+    jsave(cf, con)
+    wait_run(c, c.post("/api/tasks/shot/verify", headers=AUTH).json()["id"])
+
+    ev = c.get("/api/evidence/shot", headers=AUTH).json()
+    fname = Path(ev["shots"][0]["file"]).name
+    s = c.get(f"/api/evidence/shot/shots/{fname}")  # no auth: img/link loads cannot send one
+    assert s.status_code == 200 and s.headers["content-type"].startswith("image/png")
+    assert c.get("/api/evidence/shot/shots/0123456789ab-gone.png").status_code == 404
+    for bad in ("zzzz-nope.png", "..%2F..%2Fserve.token"):
+        assert c.get(f"/api/evidence/shot/shots/{bad}").status_code in (400, 401)
+    h = c.get("/api/evidence/shot/html", headers=AUTH)
+    assert h.headers["content-security-policy"] == "sandbox"
+    assert f'href="/api/evidence/shot/shots/{fname}"' in h.text
+
+
 def test_invalid_and_unknown_names(pyrepo: Path):
     c = client_for(pyrepo)
     assert c.get("/api/evidence/..%2f.secrets", headers=AUTH).status_code in (400, 404)

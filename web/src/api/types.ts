@@ -17,6 +17,7 @@ export interface Scan {
 export interface Gate {
   cmd: string;
   min_risk: Risk;
+  type?: "e2e";
 }
 
 export interface Verification {

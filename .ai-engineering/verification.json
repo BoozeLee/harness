@@ -14,7 +14,8 @@
     },
     "playwright": {
       "cmd": "cd web && npm ci --no-audit --no-fund && npx playwright test e2e/dashboard.spec.ts",
-      "min_risk": "medium"
+      "min_risk": "medium",
+      "type": "e2e"
     }
   },
   "review": true,

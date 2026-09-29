@@ -16,7 +16,8 @@ WRITE = {"Edit", "Write", "NotebookEdit"}
 SAFE_ENV = (".env.example", ".env.sample", ".env.template")
 META_PREFIX = (AE, ".claude", "CLAUDE.md")
 ARTIFACTS = ["__pycache__/**", "*.pyc", "*.pyo", ".mypy_cache/**", ".ruff_cache/**",
-             ".pytest_cache/**", "node_modules/**", ".venv/**", "*.egg-info/**"]
+             ".pytest_cache/**", "node_modules/**", ".venv/**", "*.egg-info/**",
+             "test-results/**", "*/test-results/**", "playwright-report/**", "*/playwright-report/**"]
 
 
 def die(m: str) -> NoReturn:
@@ -108,7 +109,8 @@ def cmd_init(a) -> int:
     minrisk = {"typecheck": "low", "lint": "low", "unit": "low", "build": "medium", "e2e": "high"}
     jsave(r / AE / "project.json", i)
     jsave(r / AE / "verification.json",
-          {"gates": {k: {"cmd": c, "min_risk": minrisk[k]} for k, c in i["gates"].items()}, "review": True})
+          {"gates": {k: {"cmd": c, "min_risk": minrisk[k], **({"type": "e2e"} if k == "e2e" else {})}
+                     for k, c in i["gates"].items()}, "review": True})
     pol = {"always_allow": list(i["gates"].values()) + ["git diff", "git status", "git log"],
            "ask": ["git push", "database migration", "new dependency", "edit CI", "auth changes"],
            "protected": i["protected"],

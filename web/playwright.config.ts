@@ -45,10 +45,15 @@ export default defineConfig({
   retries: 0,
   reporter: [["list"], ["html", { open: "never" }]],
   timeout: 360_000, // a full UI verify runs pytest+ruff+mypy (+ reviewer) inside a worktree
+  expect: { timeout: 15_000 }, // e2e gates boot cold worktree servers; first paint can beat the 5s default
   use: {
     baseURL: "http://localhost:5173",
-    screenshot: "only-on-failure",
+    screenshot: "only-on-failure", // passing tests screenshot explicitly in dashboard.spec.ts (P4 evidence)
     trace: "retain-on-failure",
+    // Headless (default) works under Hyprland unchanged. Headed runs need Wayland:
+    // HARNESS_HEADED=1 passes --ozone-platform-hint=auto (Omarchy; TECHNICAL_PLAN §7 P4).
+    headless: !process.env.HARNESS_HEADED,
+    ...(process.env.HARNESS_HEADED ? { launchOptions: { args: ["--ozone-platform-hint=auto"] } } : {}),
   },
   webServer: [
     {

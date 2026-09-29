@@ -1,9 +1,11 @@
 """Verification: run gates, check scope, request independent review, emit evidence."""
 
+import os
 import shutil
 import time
 
 from harness.contract import load_task
+from harness.evidence import archive_shots
 from harness.evidence import write as write_evidence
 from harness.gitops import changed_files
 from harness.policy import hit
@@ -25,8 +27,10 @@ def cmd_verify(a) -> int:
     wt = c["worktree"]
     res = []
     for k, g in c["gates"].items():
-        rc, out, t = sh(g["cmd"], wt)
+        env = {**os.environ, "HARNESS_GATE_E2E": "1"} if g.get("type") == "e2e" else None
+        rc, out, t = sh(g["cmd"], wt, env=env)
         res.append({"name": k, "cmd": g["cmd"], "ok": rc == 0, "secs": t, "tail": out[-1200:], "required": True})
+    shots = archive_shots(r, c["name"], wt, c["gates"])
     ch = changed_files(wt, c["base"])
     bad = [f for f in ch if hit(f, c["protected"]) or not hit(f, c["allowed"])]
     res.append({"name": "scope", "cmd": "changed files within contract", "ok": not bad, "secs": 0,
@@ -40,6 +44,8 @@ def cmd_verify(a) -> int:
     ok = all(x["ok"] for x in res if x["required"])
     ev = {"task": c["name"], "goal": c["goal"], "accept": c["accept"], "results": res, "files": ch,
           "stat": stat, "verdict": "PASS" if ok else "FAIL", "time": int(time.time())}
+    if shots:
+        ev["shots"] = shots
     hp = write_evidence(r, ev)[1]
     for x in res:
         print(f"{'PASS' if x['ok'] else 'FAIL':<5} {x['name']:<20} {x['secs']}s")

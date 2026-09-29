@@ -290,11 +290,29 @@ P3 — **Dashboard** (3–5 d): views 1–6; Playwright e2e suite *as the repo's
   New-task dialog form (create → contract), (3) sonner toasts for run lifecycle,
   (4) `tests/e2e/` Playwright specs wired as a `playwright` gate in
   verification.json so the harness verifies its own dashboard.
+  **Done (2026-09-29):** all 6 views on shadcn primitives (testids preserved), working
+  New-task dialog, sonner toasts for run lifecycle + verify, `playwright` gate registered
+  (dashboard.spec only, min_risk medium, to avoid nested verify-spawning recursion);
+  worktree runs sync the serve token via `git rev-parse --git-common-dir`.
 
 P4 — **Browser verification gate** (2–3 d): new gate type `e2e` = Playwright spec run
   against the worktree app; screenshots archived under evidence/ with hash links.
   Omarchy note: headless-shell works under Hyprland unchanged; *headed* runs need
   Wayland (`--ozone-platform-hint=auto`) — document, default headless.
+  **Done (2026-09-29):** gates take optional `"type": "e2e"` (CLI `verify.py` and async
+  `runner.py` both inject `HARNESS_GATE_E2E=1` via the subprocess env param — never a
+  cmd-string prefix, so exact-cmd guard matching stays intact). `evidence.archive_shots`
+  prunes `evidence/<task>/` per run, archives only images (never trace.zip) from
+  `test-results/` for e2e gates, sha256-names them `<sha12>-<slug>.png`, caps 5 MiB/file
+  and 25/gate; evidence JSON gains additive `shots` (schema stays 1, key absent when
+  empty). Server serves shots at `/api/evidence/{name}/shots/{fname}` — public like SSE
+  (browser `<img>` cannot send bearer; loopback-only posture) with strict filename regex +
+  parent-dir check; the html route rewrites relative hrefs to that path under CSP sandbox.
+  Playwright specs write passing-test screenshots explicitly (`screenshot:"on"` is
+  in-memory-attachment-only, writes no files); headed mode gated behind `HARNESS_HEADED`
+  with `--ozone-platform-hint=auto`. `harness init` auto-tags scan-detected e2e gates.
+  Dogfood: p4smoke verify archived 8 shots, all hashes verified, curl checks green
+  (shot 200 no-auth, traversal rejected, missing 404, html hrefs rewritten).
 
 P5 — **Adapter layer** (1 wk): Codex CLI adapter + settings generators; acceptance:
   same task lifecycle through two different agents on the same repo.

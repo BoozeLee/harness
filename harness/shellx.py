@@ -6,11 +6,11 @@ import time
 from pathlib import Path
 
 
-def sh(cmd, cwd, timeout=900, inp=None):
+def sh(cmd, cwd, timeout=900, inp=None, env=None):
     t = time.time()
     try:
         p = subprocess.run(cmd, cwd=cwd, shell=isinstance(cmd, str), capture_output=True,
-                           text=True, timeout=timeout, input=inp, check=False)
+                           text=True, timeout=timeout, input=inp, check=False, env=env)
         return p.returncode, (p.stdout + p.stderr).rstrip("\r\n"), round(time.time() - t, 1)
     except subprocess.TimeoutExpired:
         return 124, "timeout", round(time.time() - t, 1)

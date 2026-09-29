@@ -66,6 +66,7 @@ def test_full_lifecycle_with_scope_and_artifacts(pyrepo: Path):
     assert v.returncode == 0, v.stdout + v.stderr
     ev = load(pyrepo / ".ai-engineering" / "evidence" / "t.json")
     assert ev["verdict"] == "PASS"
+    assert "shots" not in ev  # no e2e-typed gate → byte-identical to pre-P4 evidence
     assert "src/calc.py" in ev["files"]
     assert not any("__pycache__" in f for f in ev["files"])
 
@@ -82,3 +83,35 @@ def test_full_lifecycle_with_scope_and_artifacts(pyrepo: Path):
 
     refused = harness(["pr", "t"], pyrepo)
     assert refused.returncode == 1 and "no passing evidence" in refused.stderr
+
+
+def test_e2e_gate_archives_shots_via_cli(pyrepo: Path):
+    import hashlib
+
+    harness(["init"], pyrepo)
+    vf = pyrepo / ".ai-engineering" / "verification.json"
+    v = load(vf)
+    # cmd asserts the env plumbing: an e2e-typed gate must run with HARNESS_GATE_E2E=1
+    v["gates"]["browser"] = {"cmd": 'test "$HARNESS_GATE_E2E" = 1 && mkdir -p web/test-results/demo-a '
+                                    "&& head -c 64 /dev/urandom > web/test-results/demo-a/test-passed-1.png",
+                             "min_risk": "low", "type": "e2e"}
+    vf.write_text(json.dumps(v, indent=2) + "\n")
+
+    started = harness(["task", "start", "et", "--goal", "g", "--risk", "low", "--allow", "src/**"], pyrepo)
+    assert started.returncode == 0, started.stdout + started.stderr
+    c = load(pyrepo / ".ai-engineering" / "tasks" / "et.json")
+    assert c["gates"]["browser"]["type"] == "e2e"  # type survives contract copying
+
+    Path(c["worktree"], "src", "calc.py").write_text(
+        "def add(a: int, b: int) -> int:\n    return a + b\n\n\n"
+        "def mul(a: int, b: int) -> int:\n    return a * b\n")
+    done = harness(["verify", "et"], pyrepo)
+    assert done.returncode == 0, done.stdout + done.stderr
+
+    ev = load(pyrepo / ".ai-engineering" / "evidence" / "et.json")
+    assert ev["verdict"] == "PASS"
+    assert len(ev["shots"]) == 1
+    shot = ev["shots"][0]
+    dest = pyrepo / ".ai-engineering" / "evidence" / "et" / shot["file"]
+    assert hashlib.sha256(dest.read_bytes()).hexdigest() == shot["sha256"]
+    assert "test-results" not in " ".join(ev["files"])  # artifacts stay out of scope

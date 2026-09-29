@@ -18,7 +18,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel, field_validator
 
 from harness import __version__
@@ -27,7 +27,11 @@ from harness.policy import AE, LVL, jload, jsave
 from harness.runner import TERMINAL, Runner, agent_argv, runs_db
 from harness.scan import scan
 
-NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
+NAME_CORE = r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}"
+NAME_RE = re.compile(rf"^{NAME_CORE}$")
+# archived shot names: <sha12>-<slug>.<ext> — nothing else is fetchable
+SHOT_CORE = r"[a-f0-9]{12}-[A-Za-z0-9._-]{1,90}\.(?:png|jpe?g)"
+SHOT_NAME_RE = re.compile(rf"^{SHOT_CORE}$")
 TOOLS = ("git", "gh", "claude", "node", "npm", "bun", "uv", "cargo", "go", "ruff", "mypy", "pytest", "playwright")
 
 
@@ -119,8 +123,11 @@ def create_app(repo: Path, token: str, max_parallel: int = 2) -> FastAPI:
     @app.middleware("http")
     async def bearer(request: Request, call_next):
         p = request.url.path
-        # SSE is public: EventSource cannot send Authorization; loopback-only, same output as terminal verify (§6)
-        public = p in ("/api/health", "/api/docs", "/api/openapi.json") or re.fullmatch(r"/api/runs/[0-9a-f]{16}/events", p)
+        # SSE and evidence shots are public: EventSource/img/link loads cannot send Authorization;
+        # loopback-only, same output as terminal verify (§6)
+        public = (p in ("/api/health", "/api/docs", "/api/openapi.json")
+                  or re.fullmatch(r"/api/runs/[0-9a-f]{16}/events", p)
+                  or re.fullmatch(rf"/api/evidence/{NAME_CORE}/shots/{SHOT_CORE}", p))
         if p.startswith("/api") and not public and request.headers.get("authorization") != f"Bearer {token}":
             return JSONResponse({"error": "unauthorized"}, status_code=401)
         return await call_next(request)
@@ -253,7 +260,20 @@ def create_app(repo: Path, token: str, max_parallel: int = 2) -> FastAPI:
         hpath = repo / AE / "evidence" / f"{p}.html"
         if not hpath.exists():
             raise HTTPException(404, "no html report")
-        return HTMLResponse(hpath.read_text(), headers={"Content-Security-Policy": "sandbox"})
+        # file:// links are relative (shots/…); under /api/… they would resolve wrongly → rewrite
+        text = hpath.read_text().replace('href="shots/', f'href="/api/evidence/{p}/shots/')
+        return HTMLResponse(text, headers={"Content-Security-Policy": "sandbox"})
+
+    @app.get("/api/evidence/{name}/shots/{fname}")
+    def evidence_shot(name: str, fname: str):
+        _safe(name)
+        if not SHOT_NAME_RE.fullmatch(fname):
+            raise HTTPException(400, "invalid shot name")
+        shots_dir = (repo / AE / "evidence" / name / "shots").resolve()
+        p = (shots_dir / fname).resolve()
+        if p.parent != shots_dir or not p.is_file():
+            raise HTTPException(404, "no such shot")
+        return FileResponse(p)
 
     @app.get("/api/audit")
     def audit(blocked: bool = False):

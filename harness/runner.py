@@ -21,6 +21,7 @@ from collections.abc import Coroutine
 from pathlib import Path
 from typing import Any
 
+from harness.evidence import archive_shots
 from harness.evidence import write as write_evidence
 from harness.gitops import changed_files
 from harness.policy import AE, hit, jload
@@ -191,10 +192,10 @@ class Runner:
         for t in self._tasks.values():
             t.cancel()
 
-    async def _gate(self, run_id: str, cwd: str, cmd: str) -> tuple[bool, float, str]:
+    async def _gate(self, run_id: str, cwd: str, cmd: str, env=None) -> tuple[bool, float, str]:
         t0 = _now()
         proc = await asyncio.create_subprocess_shell(
-            cmd, cwd=cwd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT,
+            cmd, cwd=cwd, env=env, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT,
             start_new_session=True)
         self._procs[run_id] = proc
         tail: list[str] = []
@@ -224,10 +225,12 @@ class Runner:
                     res = []
                     for k, g in c["gates"].items():
                         await self._emit(run_id, "gate", {"name": k, "state": "running", "cmd": g["cmd"]})
-                        ok, secs, tail = await self._gate(run_id, wt, g["cmd"])
+                        env = {**os.environ, "HARNESS_GATE_E2E": "1"} if g.get("type") == "e2e" else None
+                        ok, secs, tail = await self._gate(run_id, wt, g["cmd"], env=env)
                         res.append({"name": k, "cmd": g["cmd"], "ok": ok, "secs": secs,
                                     "tail": tail[-1200:], "required": True})
                         await self._emit(run_id, "gate", {"name": k, "state": "done", "ok": ok, "secs": secs})
+                    shots = await asyncio.to_thread(archive_shots, self.root, task, wt, c["gates"])
                     ch = changed_files(wt, c["base"])
                     bad = [f for f in ch if _bad_scope(f, c)]
                     res.append({"name": "scope", "cmd": "changed files within contract", "ok": not bad, "secs": 0,
@@ -246,6 +249,8 @@ class Runner:
                     passed = all(x["ok"] for x in res if x["required"])
                     ev = {"task": task, "goal": c["goal"], "accept": c["accept"], "results": res, "files": ch,
                           "stat": stat, "verdict": "PASS" if passed else "FAIL", "time": int(_now())}
+                    if shots:
+                        ev["shots"] = shots
                     await asyncio.to_thread(write_evidence, self.root, ev)
                     status = "succeeded" if passed else "failed"
                     await self._set(run_id, status=status, ended=_now(), exit_code=0 if passed else 1)
