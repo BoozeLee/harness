@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 const VIEWS: Array<[string, string]> = [
+  ["projects", "Projects"],
   ["readiness", "Agent-readiness"],
   ["tasks", "Tasks"],
   ["runs", "Runs"],
@@ -26,6 +27,7 @@ for (const [route, heading] of VIEWS) {
 test("sidebar navigation visits every view by click", async ({ page }) => {
   await page.goto("/readiness");
   for (const [route, heading, link] of [
+    ["projects", "Projects", "Projects"],
     ["readiness", "Agent-readiness", "Readiness"],
     ["tasks", "Tasks", "Tasks"],
     ["runs", "Runs", "Runs"],

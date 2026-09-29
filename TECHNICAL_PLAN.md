@@ -106,7 +106,8 @@ act, never a second source of truth), per README roadmap. Order of value:
 
 1. P0 harden CLI (fix bugs found above) — CLI stays fully usable standalone.
 2. P1–P3 server + runner + dashboard.
-3. P4 browser-verification gate, P5 agent adapters (Codex/Copilot), P6 team policy sync,
+3. P4 browser-verification gate, P5 projects API (§7 revision), P5b agent adapters
+   (Codex/Copilot), P6 team policy sync,
    P7 evals (raw vs harnessed).
 
 Non-goals for v1: hosted/multi-tenant product (README: review agent SDK commercial
@@ -314,7 +315,19 @@ P4 — **Browser verification gate** (2–3 d): new gate type `e2e` = Playwright
   Dogfood: p4smoke verify archived 8 shots, all hashes verified, curl checks green
   (shot 200 no-auth, traversal rejected, missing 404, html hrefs rewritten).
 
-P5 — **Adapter layer** (1 wk): Codex CLI adapter + settings generators; acceptance:
+P5 — **Projects API** — **revised (2026-09-29):** per user directive this phase became the
+  `GET /api/v1/projects` endpoint + Projects listing view; the adapter layer (the former
+  P5) moves to P5b.
+  **Done (2026-09-29):** first `/api/v1/`-versioned route — list envelope of projects bound
+  to the server (today exactly one: the repo `create_app` received), composed live from
+  `scan(repo)` + `_task_rows()` verdict counts (helper extracted from `/api/tasks`, now
+  shared). Entry: `{name, root, initialized, stacks, gates, protected, ci, readiness,
+  tasks:{total,pass,fail,unverified}}`; bearer-protected by the existing middleware.
+  Frontend: Projects view (`/projects`, first sidebar entry) with `project-row/-name/
+  -readiness` testids; e2e VIEWS table picks it up automatically (11/11 green). Existing
+  `/api/*` paths untouched — no big-bang versioning.
+
+P5b — **Adapter layer** (1 wk): Codex CLI adapter + settings generators; acceptance:
   same task lifecycle through two different agents on the same repo.
 
 P6 — **Team policy sync** (1 wk): policy bundles as Git repo + `harness policy push/pull`,

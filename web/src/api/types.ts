@@ -95,6 +95,30 @@ export interface TaskRow {
   verdict: string;
 }
 
+export interface ProjectTasks {
+  total: number;
+  pass: number;
+  fail: number;
+  unverified: number;
+}
+
+export interface Project {
+  name: string;
+  root: string;
+  initialized: boolean;
+  stacks: string[];
+  gates: string[];
+  protected: string[];
+  ci: string[];
+  readiness: number;
+  tasks: ProjectTasks;
+}
+
+export interface ProjectList {
+  schema_version: number;
+  projects: Project[];
+}
+
 export interface Run {
   id: string;
   task: string;

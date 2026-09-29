@@ -153,8 +153,7 @@ def create_app(repo: Path, token: str, max_parallel: int = 2) -> FastAPI:
             raise HTTPException(404, "not initialized: run `harness init`")
         return _jload(p)
 
-    @app.get("/api/tasks")
-    def tasks():
+    def _task_rows() -> list[dict]:
         d = repo / AE / "tasks"
         rows = []
         for p in sorted(d.glob("*.json")) if d.is_dir() else []:
@@ -163,6 +162,26 @@ def create_app(repo: Path, token: str, max_parallel: int = 2) -> FastAPI:
             rows.append({"name": c["name"], "risk": c["risk"], "branch": c["branch"],
                          "verdict": _jload(ep)["verdict"] if ep.exists() else "unverified"})
         return rows
+
+    @app.get("/api/v1/projects")
+    def projects():
+        # a project is a repo bound to this server; one entry today, the list envelope
+        # keeps a future multi-repo registry from breaking the API
+        s = scan(repo)
+        rows = _task_rows()
+        npass = sum(1 for r in rows if r["verdict"] == "PASS")
+        nfail = sum(1 for r in rows if r["verdict"] == "FAIL")
+        proj = {"name": repo.name, "root": str(repo),
+                "initialized": (repo / AE / "project.json").exists(),
+                "stacks": s["stacks"], "gates": sorted(s["gates"]), "protected": s["protected"],
+                "ci": s["ci"], "readiness": s["readiness"],
+                "tasks": {"total": len(rows), "pass": npass, "fail": nfail,
+                          "unverified": len(rows) - npass - nfail}}
+        return {"schema_version": 1, "projects": [proj]}
+
+    @app.get("/api/tasks")
+    def tasks():
+        return _task_rows()
 
     @app.get("/api/tasks/{name}")
     def task(name: str):

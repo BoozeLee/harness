@@ -43,6 +43,34 @@ def test_other_endpoints_require_bearer(pyrepo: Path):
     assert json.loads(c.get("/api/scan", headers=AUTH).text)["schema_version"] == 1
 
 
+def test_projects_endpoint_shape_and_auth(pyrepo: Path):
+    c = client_for(pyrepo)
+    assert c.get("/api/v1/projects").status_code == 401
+    j = c.get("/api/v1/projects", headers=AUTH).json()
+    assert j["schema_version"] == 1 and len(j["projects"]) == 1
+    p = j["projects"][0]
+    assert p["name"] == pyrepo.name and p["root"] == str(pyrepo)
+    assert p["initialized"] is False
+    assert "python" in p["stacks"] and "unit" in p["gates"]
+    assert p["tasks"] == {"total": 0, "pass": 0, "fail": 0, "unverified": 0}
+
+
+def test_projects_counts_track_task_lifecycle(pyrepo: Path):
+    assert harness(["init"], pyrepo).returncode == 0
+    c = client_for(pyrepo)
+
+    def counts() -> dict:
+        return c.get("/api/v1/projects", headers=AUTH).json()["projects"][0]["tasks"]
+
+    assert c.get("/api/v1/projects", headers=AUTH).json()["projects"][0]["initialized"] is True
+    r = c.post("/api/tasks", headers=AUTH,
+               json={"name": "proj", "goal": "keep add", "risk": "low", "allow": ["src/**"]})
+    assert r.status_code == 201
+    assert counts() == {"total": 1, "pass": 0, "fail": 0, "unverified": 1}
+    wait_run(c, c.post("/api/tasks/proj/verify", headers=AUTH).json()["id"])
+    assert counts() == {"total": 1, "pass": 1, "fail": 0, "unverified": 0}
+
+
 def test_task_create_verify_and_evidence_flow(pyrepo: Path):
     assert harness(["init"], pyrepo).returncode == 0
     c = client_for(pyrepo)

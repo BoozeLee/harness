@@ -4,12 +4,14 @@ import Audit from "./views/Audit";
 import Evidence from "./views/Evidence";
 import Health from "./views/Health";
 import Policy from "./views/Policy";
+import Projects from "./views/Projects";
 import Readiness from "./views/Readiness";
 import Run from "./views/Run";
 import Runs from "./views/Runs";
 import Tasks from "./views/Tasks";
 
 const NAV = [
+  { to: "projects", label: "Projects" },
   { to: "readiness", label: "Readiness" },
   { to: "tasks", label: "Tasks" },
   { to: "runs", label: "Runs" },
@@ -52,6 +54,7 @@ export default function App() {
     <Routes>
       <Route element={<Shell />}>
         <Route index element={<Navigate to="readiness" replace />} />
+        <Route path="projects" element={<Projects />} />
         <Route path="readiness" element={<Readiness />} />
         <Route path="tasks" element={<Tasks />} />
         <Route path="runs" element={<Runs />} />
