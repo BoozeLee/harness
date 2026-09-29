@@ -110,6 +110,7 @@ export default function Tasks() {
     setErr(null);
     try {
       const r = await postJson<Run>(`/tasks/${name}/verify`, {});
+      toast.success(`Verify run started for ${name}`);
       nav(`/runs/${r.id}`);
     } catch (e) {
       setErr(String(e instanceof Error ? e.message : e).slice(0, 200));

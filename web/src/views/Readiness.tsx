@@ -1,4 +1,10 @@
 import { ApiState, useApi } from "../components/ApiState";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table";
 import type { Scan } from "../api/types";
 
 export default function Readiness() {
@@ -10,35 +16,39 @@ export default function Readiness() {
         q={q}
         render={(s) => (
           <div className="space-y-4">
-            <p className="text-4xl font-bold">
-              {s.readiness}
-              <span className="text-lg text-zinc-500">/100</span>
-            </p>
-            <p className="text-sm">
-              {s.stacks.map((st) => (
-                <span key={st} className="mr-2 rounded-full bg-zinc-200 px-2.5 py-0.5 text-xs font-medium dark:bg-zinc-800">
-                  {st}
-                </span>
-              ))}
-            </p>
-            <table className="w-full text-left text-sm">
-              <thead className="border-b border-zinc-200 text-zinc-500 dark:border-zinc-800">
-                <tr>
-                  <th className="py-1 pr-4">Gate</th>
-                  <th className="py-1">Command</th>
-                </tr>
-              </thead>
-              <tbody>
+            <Card>
+              <CardContent className="flex flex-wrap items-center gap-3">
+                <p className="text-4xl font-bold">
+                  {s.readiness}
+                  <span className="text-lg text-muted-foreground">/100</span>
+                </p>
+                <p>
+                  {s.stacks.map((st) => (
+                    <Badge key={st} variant="secondary" className="mr-2">{st}</Badge>
+                  ))}
+                </p>
+              </CardContent>
+            </Card>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="pr-4">Gate</TableHead>
+                  <TableHead>Command</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {Object.entries(s.gates).map(([k, cmd]) => (
-                  <tr key={k} className="border-b border-zinc-100 dark:border-zinc-900">
-                    <td className="py-1.5 pr-4 font-medium">{k}</td>
-                    <td className="py-1.5 font-mono text-xs">{cmd}</td>
-                  </tr>
+                  <TableRow key={k}>
+                    <TableCell className="py-1.5 pr-4 font-medium">{k}</TableCell>
+                    <TableCell className="py-1.5 font-mono text-xs">{cmd}</TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
             {s.notes.map((n) => (
-              <p key={n} className="text-sm text-amber-600 dark:text-amber-400">! {n}</p>
+              <Alert key={n} className="border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400">
+                <AlertDescription>! {n}</AlertDescription>
+              </Alert>
             ))}
           </div>
         )}

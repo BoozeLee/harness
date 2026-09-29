@@ -1,16 +1,21 @@
 import { ApiState, useApi } from "../components/ApiState";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Policy as PolicyT } from "../api/types";
 
 function List({ title, items }: { title: string; items: string[] }) {
   return (
-    <div className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
-      <p className="mb-2 text-sm font-semibold">{title}</p>
-      <ul className="space-y-1 font-mono text-xs text-zinc-600 dark:text-zinc-400">
-        {items.map((i) => (
-          <li key={i}>{i}</li>
-        ))}
-      </ul>
-    </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <ul className="space-y-1 font-mono text-xs text-muted-foreground">
+          {items.map((i) => (
+            <li key={i}>{i}</li>
+          ))}
+        </ul>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -19,7 +24,7 @@ export default function Policy() {
   return (
     <div>
       <h1 className="mb-1 text-2xl font-bold">Policy</h1>
-      <p className="mb-4 text-sm text-zinc-500">Read-only draft; the editor with settings.json preview lands in P3.</p>
+      <p className="mb-4 text-sm text-muted-foreground">Read-only draft; the editor with settings.json preview lands in P3.</p>
       <ApiState
         q={q}
         render={(p) => (

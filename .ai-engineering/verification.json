@@ -11,6 +11,10 @@
     "typecheck": {
       "cmd": "uv run mypy harness/",
       "min_risk": "medium"
+    },
+    "playwright": {
+      "cmd": "cd web && npm ci --no-audit --no-fund && npx playwright test e2e/dashboard.spec.ts",
+      "min_risk": "medium"
     }
   },
   "review": true,

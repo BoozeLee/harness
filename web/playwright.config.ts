@@ -1,9 +1,32 @@
-import { readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { chmodSync, copyFileSync, existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { defineConfig } from "@playwright/test";
 
 const ROOT = import.meta.dirname; // web/
 const repoRoot = path.resolve(ROOT, "..");
+
+function mainRepoRoot(): string {
+  try {
+    const common = execFileSync("git", ["-C", repoRoot, "rev-parse", "--git-common-dir"], { encoding: "utf8" }).trim();
+    return path.resolve(repoRoot, common, "..");
+  } catch {
+    return repoRoot;
+  }
+}
+
+// A task worktree lacks the gitignored serve.token and `harness serve` would mint a fresh
+// one there; copy the main checkout's so the server and the vite bundle agree on one token.
+function syncToken(): void {
+  const local = path.join(repoRoot, ".ai-engineering", "serve.token");
+  if (existsSync(local)) return;
+  const main = path.join(mainRepoRoot(), ".ai-engineering", "serve.token");
+  if (existsSync(main)) {
+    copyFileSync(main, local);
+    chmodSync(local, 0o600);
+  }
+}
+syncToken();
 
 // same token the live `harness serve` uses; the vite client bakes it in via import.meta.env
 function serveToken(): string {
