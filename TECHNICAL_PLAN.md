@@ -22,7 +22,7 @@ scan → init → task start → (task run) → verify → pr
 | `task start` | Creates isolated `git worktree` + branch `harness/<name>`, copies policy into it, builds a **contract**: goal, acceptance criteria, risk level → gate subset (`low` gates only run for `--risk low`), `allowed`/`protected` path patterns, base SHA | `.ai-engineering/tasks/<name>.json` |
 | `task run` | Optional: headless `claude -p "<plan+implement+verify prompt>" --permission-mode acceptEdits` inside the worktree | agent edits |
 | `verify` | Runs each gate command, computes changed-file scope from `git diff` + `git status --porcelain`, runs an independent `claude -p` reviewer against the diff (PASS/FAIL verdict), writes evidence | `.ai-engineering/evidence/<name>.json` + `.html` |
-| `pr` | Refuses unless evidence verdict is PASS; commits (excluding harness meta-files), pushes branch, `gh pr create` with gate checklist as body | GitHub PR |
+| `pr` | Subcommands: `create` (refuses unless evidence verdict is PASS; commits excluding harness meta-files, pushes branch, `gh pr create` with gate checklist as body), `view` (maps task → `harness/<name>` branch → PR number via `gh pr list --head`, then `gh pr view`), `status`/`list` (gh passthroughs) | GitHub PR |
 
 Design properties worth preserving as invariants:
 - **Plain files in Git** as the only source of truth (inspectable via `git diff`, no lock-in).
@@ -106,8 +106,8 @@ act, never a second source of truth), per README roadmap. Order of value:
 
 1. P0 harden CLI (fix bugs found above) — CLI stays fully usable standalone.
 2. P1–P3 server + runner + dashboard.
-3. P4 browser-verification gate, P5 projects API (§7 revision), P5b agent adapters
-   (Codex/Copilot), P6 team policy sync,
+3. P4 browser-verification gate, P5 projects API (§7 revision), P5b gh pr adapter,
+   P5c agent adapters (Codex/Copilot), P6 team policy sync,
    P7 evals (raw vs harnessed).
 
 Non-goals for v1: hosted/multi-tenant product (README: review agent SDK commercial
@@ -327,7 +327,23 @@ P5 — **Projects API** — **revised (2026-09-29):** per user directive this ph
   -readiness` testids; e2e VIEWS table picks it up automatically (11/11 green). Existing
   `/api/*` paths untouched — no big-bang versioning.
 
-P5b — **Adapter layer** (1 wk): Codex CLI adapter + settings generators; acceptance:
+P5b — **`harness pr` gh adapter** — **revised (2026-09-29):** per user directive P5b became
+  the gh-backed project-operations adapter; the Codex adapter layer moves to P5c.
+  **Done (2026-09-29):** `pr` is a subcommand group (`create|view|status|list`,
+  harness/pr.py + cli.py). `create` keeps the PASS-evidence gate and now surfaces gh
+  failures instead of swallowing them (`die("gh pr create failed:…")`). `view` maps
+  task → `harness/<name>` → PR number via `gh pr list --head … --json number` then
+  `gh pr view`; absent PR dies with a create hint. `status`/`list` are exit-code-
+  propagating passthroughs. All gh calls are argv arrays through `sh()` (never shell
+  strings); read-only ops run at repo root, create keeps worktree cwd. Tested fully
+  offline: fake-`gh` PATH shim (argv log + canned outputs) + local bare origin —
+  create pushes `harness/t` and the `pr create --title/--head` contract is asserted from
+  the log (tests/test_pr.py, 5 tests; suite now 43 green, ruff+mypy clean). Breaking
+  `harness pr <name>` → `harness pr create <name>` accepted (no external users, no
+  back-compat shim per AGENTS.md). Live read-only check: real `harness pr status` against
+  the authed remote works.
+
+P5c — **Adapter layer** (1 wk): Codex CLI adapter + settings generators; acceptance:
   same task lifecycle through two different agents on the same repo.
 
 P6 — **Team policy sync** (1 wk): policy bundles as Git repo + `harness policy push/pull`,

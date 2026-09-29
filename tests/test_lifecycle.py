@@ -81,7 +81,7 @@ def test_full_lifecycle_with_scope_and_artifacts(pyrepo: Path):
     ls = harness(["task", "list"], pyrepo)
     assert "t" in ls.stdout and "FAIL" in ls.stdout
 
-    refused = harness(["pr", "t"], pyrepo)
+    refused = harness(["pr", "create", "t"], pyrepo)
     assert refused.returncode == 1 and "no passing evidence" in refused.stderr
 
 

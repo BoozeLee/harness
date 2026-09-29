@@ -56,8 +56,14 @@ def main(argv=None) -> int:
     x.add_argument("name")
     x.set_defaults(f=cmd_verify)
 
-    x = s.add_parser("pr", help="commit, push, gh pr create (requires PASS evidence)")
-    x.add_argument("name")
+    x = s.add_parser("pr", help="gh-backed PR operations for task branches")
+    prs = x.add_subparsers(dest="prc", required=True)
+    y = prs.add_parser("create", help="commit, push, gh pr create (requires PASS evidence)")
+    y.add_argument("name")
+    y = prs.add_parser("view", help="show the PR opened for the task branch")
+    y.add_argument("name")
+    prs.add_parser("status", help="gh pr status")
+    prs.add_parser("list", help="gh pr list")
     x.set_defaults(f=cmd_pr)
 
     x = s.add_parser("serve", help="local API server for the dashboard (needs server extra)")
