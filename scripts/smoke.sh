@@ -8,9 +8,12 @@ repo=$(cd "$(dirname "$0")/.." && pwd)
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 
-# 1. clean install (isolated tool dir so an existing editable install is untouched)
-uv tool install --tool-dir "$tmp/tools" "$repo" >/dev/null
-h="$tmp/tools/harness/bin/harness"
+# 1. clean install into a throwaway venv (uv tool install has no --tool-dir in
+# 0.11.x; a venv isolates identically without touching ~/.local/bin/harness)
+uv venv -q "$tmp/venv"
+uv pip install -q --python "$tmp/venv/bin/python" "$repo"
+h="$tmp/venv/bin/harness"
+"$h" --help >/dev/null   # §9 explicitly requires --help after install
 echo "== harness --version: $("$h" --version)"
 
 # 2. scratch git repo (also the clean-checkout stand-in for the §3 block)
