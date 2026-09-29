@@ -14,7 +14,7 @@ SCHEMA = 1
 LVL = {"low": 0, "medium": 1, "high": 2}
 WRITE = {"Edit", "Write", "NotebookEdit"}
 SAFE_ENV = (".env.example", ".env.sample", ".env.template")
-META_PREFIX = (AE, ".claude", "CLAUDE.md")
+META_PREFIX = (AE, ".claude", "CLAUDE.md", "AGENTS.md")
 ARTIFACTS = ["__pycache__/**", "*.pyc", "*.pyo", ".mypy_cache/**", ".ruff_cache/**",
              ".pytest_cache/**", "node_modules/**", ".venv/**", "*.egg-info/**",
              "test-results/**", "*/test-results/**", "playwright-report/**", "*/playwright-report/**"]
@@ -126,6 +126,9 @@ def cmd_init(a) -> int:
               "- Done = all gates in the task contract (.ai-engineering/tasks/) pass, not 'looks right'."]
     dst = r / ("CLAUDE.md" if not (r / "CLAUDE.md").exists() or a.force else "CLAUDE.md.proposed")
     dst.write_text("\n".join(lines) + "\n")
+    # Codex reads AGENTS.md (no hook surface; rules + its sandbox + verify's scope gate)
+    ad = r / ("AGENTS.md" if not (r / "AGENTS.md").exists() or a.force else "AGENTS.md.proposed")
+    ad.write_text("\n".join(lines) + "\n")
     hw = shutil.which("harness")
     guard_cmd = f'"{hw}" guard' if hw else f'"{sys.executable}" -m harness guard'
     sp = r / ".claude" / "settings.json"
@@ -137,5 +140,5 @@ def cmd_init(a) -> int:
     pre = [h for h in st.setdefault("hooks", {}).get("PreToolUse", []) if "harness" not in json.dumps(h)]
     st["hooks"]["PreToolUse"] = pre + [hook]
     _write_json(sp, st)
-    print(f"Initialized {AE}/, .claude/settings.json and {dst.name} (review with `git diff`).")
+    print(f"Initialized {AE}/, .claude/settings.json, {dst.name} and {ad.name} (review with `git diff`).")
     return 0

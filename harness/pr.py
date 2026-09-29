@@ -34,7 +34,7 @@ def _create(r, c) -> int:
     if not ep.exists() or jload(ep)["verdict"] != "PASS":
         die("no passing evidence; run `harness verify` first")
     wt = c["worktree"]
-    git(wt, "add", "-A", f":!{AE}", ":!.claude", ":!CLAUDE.md")
+    git(wt, "add", "-A", f":!{AE}", ":!.claude", ":!CLAUDE.md", ":!AGENTS.md")
     rc, out, _ = git(wt, "commit", "-m", f"{c['goal']}\n\nVerified by Harness ({c['name']}).")
     if rc and "nothing to commit" not in out and "nothing added to commit" not in out:
         die(out)

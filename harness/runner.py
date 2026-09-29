@@ -286,14 +286,12 @@ class Runner:
             self._tasks.pop(run_id, None)
 
 
-def agent_argv(r: Path, task: str) -> list[str]:
-    """Headless claude invocation for a contract (same prompt as CLI `task run`)."""
+def agent_argv(r: Path, task: str, agent: str = "claude") -> list[str]:
+    """Headless agent invocation for a contract (same prompt as CLI `task run`)."""
+    from harness.agents import agent_prompt, build_argv
+
     c = jload(r / AE / "tasks" / f"{task}.json")
-    return ["claude", "-p",
-            (f"Goal: {c['goal']}\nAcceptance criteria:\n" + "\n".join(f"- {x}" for x in c["accept"]) +
-             "\nFirst write a short plan, then implement. Do not touch protected paths. Before finishing, run: " +
-             "; ".join(g["cmd"] for g in c["gates"].values()) + ". Do not claim completion while any fails."),
-            "--permission-mode", "acceptEdits"]
+    return build_argv(agent, agent_prompt(c))
 
 
 def runs_db(r: Path) -> Path:

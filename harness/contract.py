@@ -32,7 +32,7 @@ def cmd_start(a) -> int:
     rc, out, _ = git(r, "worktree", "add", "-b", br, str(wt))
     if rc:
         die(out)
-    for p in (AE, ".claude", "CLAUDE.md"):
+    for p in (AE, ".claude", "CLAUDE.md", "AGENTS.md"):
         s, d = r / p, wt / p
         if s.exists() and not d.exists():
             if s.is_dir():
@@ -89,10 +89,12 @@ def cmd_list(a) -> int:
 
 
 def cmd_run(a) -> int:
+    from harness.agents import agent_prompt, build_argv
+
     _, c = load_task(a)
-    if not shutil.which("claude"):
-        die("`claude` CLI not found; work in the worktree manually, then `harness verify`.")
-    prompt = (f"Goal: {c['goal']}\nAcceptance criteria:\n" + "\n".join(f"- {x}" for x in c["accept"]) +
-              "\nFirst write a short plan, then implement. Do not touch protected paths. Before finishing, run: " +
-              "; ".join(g["cmd"] for g in c["gates"].values()) + ". Do not claim completion while any fails.")
-    return sh(["claude", "-p", prompt, "--permission-mode", "acceptEdits"], c["worktree"], timeout=3600)[0]
+    if not shutil.which(a.agent):
+        die(f"`{a.agent}` CLI not found; work in the worktree manually, then `harness verify`.")
+    rc, out, _ = sh(build_argv(a.agent, agent_prompt(c)), c["worktree"], timeout=3600)
+    if out:
+        print(out)
+    return rc

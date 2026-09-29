@@ -168,4 +168,5 @@ def test_invalid_and_unknown_names(pyrepo: Path):
     assert c.post("/api/tasks", headers=AUTH,
                   json={"name": "ok; rm -rf", "goal": "x"}).status_code == 422
     assert c.post("/api/tasks/nope/verify", headers=AUTH).status_code == 404
+    assert c.post("/api/tasks/nope/run", headers=AUTH, json={"agent": "bogus"}).status_code == 422
     assert c.get("/api/policy", headers=AUTH).status_code == 404  # pyrepo not initialized

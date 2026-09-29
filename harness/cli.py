@@ -4,6 +4,7 @@ import argparse
 import sys
 
 from harness import __version__
+from harness.agents import AGENTS
 from harness.contract import cmd_list, cmd_run, cmd_start, cmd_update
 from harness.guard import cmd_guard
 from harness.policy import LVL, cmd_init
@@ -25,7 +26,7 @@ def main(argv=None) -> int:
     x.add_argument("--json", action="store_true")
     x.set_defaults(f=cmd_scan)
 
-    x = s.add_parser("init", help="write .ai-engineering/, CLAUDE.md and .claude/settings.json")
+    x = s.add_parser("init", help="write .ai-engineering/, CLAUDE.md, AGENTS.md and .claude/settings.json")
     x.add_argument("--force", action="store_true")
     x.set_defaults(f=cmd_init)
 
@@ -39,8 +40,9 @@ def main(argv=None) -> int:
     x.add_argument("--allow", action="append")
     x.add_argument("--risk", choices=list(LVL), default="medium")
     x.set_defaults(f=cmd_start)
-    x = t.add_parser("run", help="optional headless claude -p inside the worktree")
+    x = t.add_parser("run", help="optional headless agent run inside the worktree")
     x.add_argument("name")
+    x.add_argument("--agent", choices=list(AGENTS), default="claude")
     x.set_defaults(f=cmd_run)
     x = t.add_parser("update", help="amend a contract (goal/accept/allow/risk)")
     x.add_argument("name")

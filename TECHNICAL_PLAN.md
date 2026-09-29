@@ -17,10 +17,10 @@ scan → init → task start → (task run) → verify → pr
 | Command | Mechanism | State produced |
 |---|---|---|
 | `scan` | Heuristic stack/gate detection: package.json scripts, pyproject/requirements (pytest/ruff/mypy), Cargo.toml, go.mod, Makefile; protects `.env*`, `*.pem`, `secrets/**`, migration/infra/workflow dirs; scores agent-readiness /100 | in-memory dict |
-| `init` | Writes `.ai-engineering/{project,policy,verification}.json`, generates `CLAUDE.md`, merges allow/deny + a `PreToolUse` guard hook into `.claude/settings.json` | Git-tracked JSON |
+| `init` | Writes `.ai-engineering/{project,policy,verification}.json`, generates `CLAUDE.md` + `AGENTS.md` (never clobbers a hand-written AGENTS.md — writes `AGENTS.md.proposed` unless `--force`), merges allow/deny + a `PreToolUse` guard hook into `.claude/settings.json` | Git-tracked JSON |
 | `guard` | Claude Code PreToolUse hook: reads event JSON on stdin, matches file paths against `never_read`/`protected` and commands against `never_commands`, NDJSON-audits every event, exits 2 to block | `.ai-engineering/audit.log` |
 | `task start` | Creates isolated `git worktree` + branch `harness/<name>`, copies policy into it, builds a **contract**: goal, acceptance criteria, risk level → gate subset (`low` gates only run for `--risk low`), `allowed`/`protected` path patterns, base SHA | `.ai-engineering/tasks/<name>.json` |
-| `task run` | Optional: headless `claude -p "<plan+implement+verify prompt>" --permission-mode acceptEdits` inside the worktree | agent edits |
+| `task run` | Optional: headless agent inside the worktree — `claude -p "<plan+implement+verify prompt>" --permission-mode acceptEdits` or `codex exec --sandbox workspace-write` (`--agent claude|codex`, default claude) | agent edits |
 | `verify` | Runs each gate command, computes changed-file scope from `git diff` + `git status --porcelain`, runs an independent `claude -p` reviewer against the diff (PASS/FAIL verdict), writes evidence | `.ai-engineering/evidence/<name>.json` + `.html` |
 | `pr` | Subcommands: `create` (refuses unless evidence verdict is PASS; commits excluding harness meta-files, pushes branch, `gh pr create` with gate checklist as body), `view` (maps task → `harness/<name>` branch → PR number via `gh pr list --head`, then `gh pr view`), `status`/`list` (gh passthroughs) | GitHub PR |
 
@@ -345,6 +345,25 @@ P5b — **`harness pr` gh adapter** — **revised (2026-09-29):** per user direc
 
 P5c — **Adapter layer** (1 wk): Codex CLI adapter + settings generators; acceptance:
   same task lifecycle through two different agents on the same repo.
+  **Done (2026-09-29):** `harness/agents.py` holds the adapters — one shared contract
+  prompt (`agent_prompt`) + per-agent argv (`build_argv`): claude
+  `-p … --permission-mode acceptEdits`, codex `exec --sandbox workspace-write`
+  (flags verified against installed codex-cli 0.158.0 `--help`; approval-on-request
+  would stall a headless run). `task run --agent claude|codex` (default claude) via
+  cmd_run; runner.agent_argv carries the agent into dashboard runs; the server takes
+  an `AgentRun` body (422 unknown agent, 409 missing CLI) and `TOOLS` probes codex.
+  Settings generator: `init` writes `AGENTS.md` for Codex (which has no hook surface)
+  and never clobbers a hand-written one — `AGENTS.md.proposed` unless `--force`;
+  `cmd_start` copies it into the worktree, `META_PREFIX` keeps it out of scope,
+  `pr create` excludes it from the commit. Enforcement asymmetry is accepted:
+  Claude gets the PreToolUse guard hook, Codex relies on AGENTS.md + its sandbox +
+  verify's after-the-fact scope gate. Acceptance proved fully offline with fake
+  claude/codex binaries on PATH (argv logged to $AGENT_LOG, each performs a typed
+  in-scope edit): init→task start→task run→verify→PASS through **both** agents on
+  the same repo (tests/test_agents.py, 6 tests; suite 49 green, ruff+mypy clean,
+  e2e 11/11 unchanged). No real provider invocations (auto-mode: no data off the
+  machine). Fix shipped alongside: cmd_run now prints nonempty agent output
+  (previously swallowed).
 
 P6 — **Team policy sync** (1 wk): policy bundles as Git repo + `harness policy push/pull`,
   CI `harness scan --fail-under <n>` and `harness verify` in GitHub Actions.

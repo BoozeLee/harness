@@ -22,6 +22,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Streamin
 from pydantic import BaseModel, field_validator
 
 from harness import __version__
+from harness.agents import AGENTS
 from harness.contract import cmd_start
 from harness.policy import AE, LVL, jload, jsave
 from harness.runner import TERMINAL, Runner, agent_argv, runs_db
@@ -32,7 +33,7 @@ NAME_RE = re.compile(rf"^{NAME_CORE}$")
 # archived shot names: <sha12>-<slug>.<ext> — nothing else is fetchable
 SHOT_CORE = r"[a-f0-9]{12}-[A-Za-z0-9._-]{1,90}\.(?:png|jpe?g)"
 SHOT_NAME_RE = re.compile(rf"^{SHOT_CORE}$")
-TOOLS = ("git", "gh", "claude", "node", "npm", "bun", "uv", "cargo", "go", "ruff", "mypy", "pytest", "playwright")
+TOOLS = ("git", "gh", "claude", "codex", "node", "npm", "bun", "uv", "cargo", "go", "ruff", "mypy", "pytest", "playwright")
 
 
 def _version_of(tool: str) -> str | None:
@@ -105,6 +106,17 @@ class TaskCreate(BaseModel):
     def _risk(cls, v: str) -> str:
         if v not in LVL:
             raise ValueError(f"risk must be one of {sorted(LVL)}")
+        return v
+
+
+class AgentRun(BaseModel):
+    agent: str = "claude"
+
+    @field_validator("agent")
+    @classmethod
+    def _agent(cls, v: str) -> str:
+        if v not in AGENTS:
+            raise ValueError(f"agent must be one of {list(AGENTS)}")
         return v
 
 
@@ -213,15 +225,16 @@ def create_app(repo: Path, token: str, max_parallel: int = 2) -> FastAPI:
         return {"id": run_id, "events": f"/api/runs/{run_id}/events"}
 
     @app.post("/api/tasks/{name}/run", status_code=202)
-    async def agent_run(name: str):
+    async def agent_run(name: str, body: AgentRun | None = None):
         _safe(name)
         cf = repo / AE / "tasks" / f"{name}.json"
         if not cf.exists():
             raise HTTPException(404, f"no such task: {name}")
-        if not shutil.which("claude"):
-            raise HTTPException(409, "claude CLI not found; cannot enqueue an agent run")
+        agent = body.agent if body else "claude"
+        if not shutil.which(agent):
+            raise HTTPException(409, f"{agent} CLI not found; cannot enqueue an agent run")
         c = _jload(cf)
-        run_id = await runner.create(name, "agent", agent_argv(repo, name), c["worktree"])
+        run_id = await runner.create(name, "agent", agent_argv(repo, name, agent), c["worktree"])
         return {"id": run_id, "events": f"/api/runs/{run_id}/events"}
 
     @app.get("/api/runs")
