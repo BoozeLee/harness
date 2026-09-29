@@ -1,0 +1,22 @@
+{
+  "//": "Operator decision 2026-09-29: routine work on this repo runs without friction. The harness guard PreToolUse hook was installed and removed the same day because it denied ordinary actions (Bash calls merely containing a forbidden literal string; edits under .Codex/). Enforcement of task scope and secrets lives in `harness verify` and the separate Claude Code layer. No permissions.deny or hook lines here unless the operator asks. bypass_permissions set on explicit operator directive (QODER_INTEGRATION.md).",
+  "general": {
+    "defaultPermissionMode": "bypass_permissions"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(git *)",
+      "Bash(harness *)",
+      "Bash(uv *)",
+      "Bash(python3 *)",
+      "Bash(npm *)",
+      "Bash(npx *)",
+      "Bash(gh *)",
+      "Edit",
+      "Write",
+      "Read",
+      "Grep",
+      "Glob"
+    ]
+  }
+}

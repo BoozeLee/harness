@@ -1,1 +1,10 @@
 {"t": 1790606922, "tool": "Read", "target": "/home/kilisan/harness/.env", "decision": "deny", "blocked": true, "why": ".env is a secret path"}
+{"t": 1790715042, "tool": "Read", "target": "/home/kilisan/harness/.env", "decision": "deny", "blocked": true, "why": ".env is a secret path"}
+{"t": 1790715042, "tool": "Read", "target": "/home/kilisan/harness/README.md", "decision": "allow", "blocked": false, "why": null}
+{"t": 1790715042, "tool": "Bash", "target": "git push origin main", "decision": "deny", "blocked": true, "why": "command contains forbidden pattern 'git push origin main'"}
+{"t": 1790715169, "tool": "Read", "target": "/home/kilisan/harness/.env", "decision": "deny", "blocked": true, "why": ".env is a secret path"}
+{"t": 1790715169, "tool": "Read", "target": "/home/kilisan/harness/README.md", "decision": "allow", "blocked": false, "why": null}
+{"t": 1790715169, "tool": "Bash", "target": "git push origin main", "decision": "deny", "blocked": true, "why": "command contains forbidden pattern 'git push origin main'"}
+{"t": 1790715169, "tool": "Bash", "target": "git status --short", "decision": "allow", "blocked": false, "why": null}
+{"t": 1790715169, "tool": "Write", "target": "/home/kilisan/harness/prod/.env", "decision": "deny", "blocked": true, "why": "prod/.env is a secret path"}
+{"t": 1790715169, "tool": "Grep", "target": "/home/kilisan/.ssh", "decision": "allow", "blocked": false, "why": null}
