@@ -21,3 +21,7 @@ web/.env
 test-results/
 playwright-report/
 .ai-engineering/evidence/
+
+# eval run artifacts: regenerate with 'harness eval run'
+evals/results.jsonl
+evals/report.html
