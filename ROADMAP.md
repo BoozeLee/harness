@@ -39,18 +39,26 @@ Legend: `[x]` done & verified · `[ ]` open · `→` blocked on a user decision
 - [ ] **ROADMAP honesty pass** — mark this whole section Done in one commit;
       readiness still ≥ floor (`harness scan --fail-under 70` exits 0).
 
-## P7 — Evals: raw vs harnessed (W2–W3, needs a lift)
+## P7 — Evals: raw vs harnessed (W2–W3)
 
-→ **Blocked on user decision:** real provider calls send task/diff data off this
-machine. Lift the auto-mode rule, or park P7 and ship v1 without eval numbers.
+→ **Unblocked: operator lifted the off-machine rule 2026-09-30** — live provider
+runs are authorized for this corpus only (small synthetic utils, no repo data).
 
-- [ ] Corpus: ≥6 small tasks × 2 stacks (python repo + a TS repo), same task
-      run both ways. Proof: fixtures under `evals/`, `harness eval list` shows them.
-- [ ] Runner: `harness eval` — spawns raw `claude -p` vs `task start/run/verify`
-      in throwaway bare-origin repos, collects per-run: first-pass gate rate,
-      scope violations, reviewer FAIL reasons, cost, wall-clock.
-- [ ] Report: static HTML from the evidence schema (dashboard pattern reused),
-      checked-in last report as the README's "proof it works" artifact.
+- [x] Corpus: 6 small tasks × 2 stacks (python ×3, typescript ×3), same task run
+      both ways; hidden `test_graded` suites are the ground truth.
+      Proof: `evals/tasks.json` + `evals/fixtures/` + `harness eval list` green.
+- [x] Runner: `harness eval run` — raw vs `init→task start→run→verify` in
+      throwaway repos, fake agent with `--dry` (fully offline); collects per-run
+      graded_pass, first-pass gate verdict, scope violations, wall-clock cost.
+      Proof: tests/test_eval.py (5 offline tests). Honest finding encoded in a
+      test: a do-nothing agent reaches gates=PASS + empty diff → the corpus's
+      visible gates are weak by design; `graded_pass` is the real signal.
+- [x] Report: `harness eval report` → static CSP-sandboxed HTML from
+      results.jsonl, grouped agent/stack × task × variant.
+      Proof: test_report_groups_and_escapes (incl. XSS escape assertion).
+- [ ] **Live matrix**: `harness eval run --agent all` (claude + codex, real
+      provider calls, ~24 runs) + report committed as the README's proof
+      artifact. Blocked only by the reviewer session limit until 02:00; queued.
 - [ ] README + TECHNICAL_PLAN §7 P7 Done note with the numbers.
 
 ## v1.0 ship (end of W3)
