@@ -43,7 +43,7 @@ def test_guard_deny_ask_allow_channels(pyrepo: Path):
     allowed = _guard(pyrepo, "Edit", file_path=str(pyrepo / "src" / "calc.py"))
     assert allowed.returncode == 0 and allowed.stdout == ""
     lines = [json.loads(x) for x in (pyrepo / ".ai-engineering" / "audit.log").read_text().splitlines()]
-    assert [l["decision"] for l in lines][-3:] == ["deny", "ask", "allow"]
+    assert [ev["decision"] for ev in lines][-3:] == ["deny", "ask", "allow"]
 
 
 def test_full_lifecycle_with_scope_and_artifacts(pyrepo: Path):
