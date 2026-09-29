@@ -30,8 +30,10 @@ git -c user.email=s@m -c user.name=s commit -qm i
 # 3. README command block, verbatim
 "$h" scan | grep -q 'readiness'
 ! "$h" scan --fail-under 95 >/dev/null 2>&1   # bare repo sits below a high floor
+before=$("$h" scan | sed -n 's/.*readiness: *\([0-9]*\)\/100.*/\1/p')
 "$h" init
-"$h" scan --fail-under 60 >/dev/null          # init lifts readiness above it
+after=$("$h" scan | sed -n 's/.*readiness: *\([0-9]*\)\/100.*/\1/p')
+[ "$after" -gt "$before" ] || { echo "init did not lift readiness ($before -> $after)"; exit 1; }
 "$h" ci
 "$h" policy status "$tmp/bundle.git" >/dev/null 2>&1 && { echo "status should fail before push"; exit 1; } || true
 git init --bare -q -b main "$tmp/bundle.git"
