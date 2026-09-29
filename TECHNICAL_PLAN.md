@@ -281,6 +281,15 @@ P2 — **Runner + streaming** (3–4 d): SSE, cancel, queue, SQLite index;
 P3 — **Dashboard** (3–5 d): views 1–6; Playwright e2e suite *as the repo's own gate*;
   acceptance: a non-terminal user completes full lifecycle in browser incl. one
   guard-blocked action surfaced in Audit.
+  **Kickoff (2026-09-29):** app-building tool researched and chosen: **shadcn/ui**
+  (Radix base, nova preset) — best fit because it is copy-in components (matches the
+  plain-files/git-diff ethos, no runtime lock-in), first-class Vite + Tailwind v4 +
+  React 19 support, and 2026 consensus for React dashboards. Installed: `components.json`,
+  14 primitives under `src/components/ui/`, Geist theme CSS, `@/*` alias.
+  Remaining P3 steps: (1) port the 6 views to shadcn primitives, (2) working
+  New-task dialog form (create → contract), (3) sonner toasts for run lifecycle,
+  (4) `tests/e2e/` Playwright specs wired as a `playwright` gate in
+  verification.json so the harness verifies its own dashboard.
 
 P4 — **Browser verification gate** (2–3 d): new gate type `e2e` = Playwright spec run
   against the worktree app; screenshots archived under evidence/ with hash links.
