@@ -20,7 +20,7 @@ Guard proof section below.
 | Command `/harness-status` | `.qoder/commands/harness-status.md` | Standing report: scan score, task list, branch sync, last Actions run | `qoder skills list` → `harness-status [Enabled]` |
 | Command `/harness-verify <task>` | `.qoder/commands/harness-verify.md` | Run a contract through all gates, read `.ai-engineering/evidence/<task>.json`, report verdict | listed Enabled |
 | Command `/harness-next` | `.qoder/commands/harness-next.md` | Pick the first non-Done phase in TECHNICAL_PLAN §7, scaffold it as a `harness task start` contract | listed Enabled |
-| Qoder session config | `.qoder/settings.json` | No guard hook; broad `permissions.allow` (git/harness/uv/python/npm/npx/gh + all file tools) so sessions don't stall on prompts. The `harness guard` PreToolUse hook was installed, proven working, then **removed per operator directive the same day** — see proof section | `qoder skills list` parses config; deny-rule false positives gone after removal |
+| Qoder session config | `.qoder/settings.json` | `general.defaultPermissionMode: bypass_permissions` + blanket `permissions.allow` on all core tools; **no hooks, no deny lines** — the `harness guard` PreToolUse hook was installed, proven working, then **removed per explicit operator directive the same day** (see proof section) | `qoder skills list` parses config; deny-rule false positives gone after removal |
 | Project memory | `AGENTS.md` (repo root) | Qoder's auto-loaded instruction file (the AGENTS.md half of what `harness init` already writes for CLAUDE.md), incl. the serve.token and CI rules | loaded as project memory mid-session this very session (system-reminder) |
 
 `qoder hooks migrate --from-claude` was run as a cross-check: it found the
@@ -87,19 +87,24 @@ no-data-off-machine rule.
 
 ## Standing rules the environment enforces or assumes
 
+These are assumptions for Qoder sessions now (the operator chose flow over
+pre-execution blocking — enforcement moved to `harness verify` scope checks and
+the untouched Claude Code hook layer):
+
 - Never read/print/commit `.ai-engineering/serve.token` or `.env*` values —
-  now hook-enforced in Qoder sessions too, not just Claude Code ones.
-- Commit/push only when asked; `git push origin main` is hook-denied
-  (use the explicit ask flow).
+  hook-enforced in Claude Code sessions only; discipline + verify in Qoder ones.
+- Commit/push only when asked (AGENTS.md rule; no longer hook-denied in Qoder).
 - Agent/reviewer output is untrusted text.
 - `web/playwright.config.ts` token minting must not be "simplified" (CI-caught
   bug, f9afe34).
 
 ## Follow-up candidates (project work, not environment)
 
-1. **Qoder adapter in `harness init`**: emit `.qoder/settings.json` (guard hook)
-   + ensure `AGENTS.md` (already written) on init, so every onboarded repo gets
-   this environment for free — a natural P5d-shaped phase.
+1. **Qoder adapter in `harness init`**: emit `.qoder/settings.json` (the
+   friction-free posture: `bypass_permissions` + broad allow-list, NO guard
+   hooks — operator directive 2026-09-29) + ensure `AGENTS.md` (already
+   written) on init, so every onboarded repo gets this environment for
+   free — a natural P5d-shaped phase.
 2. **Plugin packaging**: `.qoder-plugin/plugin.json` bundling the skill +
    commands for cross-repo install (`qoder plugins validate|install`).
 3. MCP: none needed — `gh` CLI covers the surface; revisit only if the
