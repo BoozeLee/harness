@@ -22,20 +22,28 @@ Legend: `[x]` done & verified · `[ ]` open · `→` blocked on a user decision
 
 ## v1 DoD closeout (TECHNICAL_PLAN §9) — W1, all offline (~6-8h)
 
-- [ ] **Push integration commit** — `git push origin main` (a2bc2e4 + whatever
-      this lands), Actions green on the new main. Proof: run URL + success.
+- [x] **Push integration commit** — `a2bc2e4` pushed; Actions run 36633480413
+      success: https://github.com/BoozeLee/harness/actions/runs/36633480413
 - [ ] **Guard transcript test** — pytest reproducing the §1 story end to end:
       a fake agent session whose `Read .env` / forbidden `Bash` events go
       through `cmd_guard` stdin and get exit-2 + audit.log lines. §8 risk row
       "Guard blocks legit flows → users disable it" gets its counterweight test
       too: an in-scope edit passes untouched. Proof: new tests green, suite ≥73.
-- [ ] **Install smoke** — `uv tool install .` in a clean venv → `harness --help`
-      + `harness scan` on a scratch repo. Automate as a pytest marked slow or a
-      CI step. Proof: command transcript in the commit body.
+      → landed on branch `harness/dod-closeout` (tests/test_guard_transcript.py
+      + `hit()` outside-repo fix; suite 76 green in worktree); tick at merge.
+- [ ] **Install smoke** — clean install of the package in a throwaway venv
+      (`uv venv && uv pip install <repo>`; `uv tool install` has no `--tool-dir`
+      in 0.11.x) → `harness --help` + `harness scan` on a scratch repo.
+      Automated as scripts/smoke.sh + tests/test_build.py (wheel entry point).
+      Proof: `bash scripts/smoke.sh` → "smoke ok" from a fresh clone (2026-09-29);
+      tick at merge.
 - [ ] **Fresh-machine checklist** — run TECHNICAL_PLAN §3 command block verbatim
       on a clean clone in /tmp; fix every step that needed unstated knowledge
-      (the serve.token mint was exactly this class of bug). Proof: doc diff or
-      "no changes needed" note in §3.
+      (the serve.token mint was exactly this class of bug). Proof: scripts/smoke.sh
+      IS the block, ran green end to end from /tmp/harness-checklist-clone
+      (scan→init→ci→policy push/status→task→verify PASS→serve --help);
+      unstated knowledge found & fixed: readiness floors are repo-dependent
+      (bare python repo scores 30→40, not ≥60). Tick at merge.
 - [ ] **ROADMAP honesty pass** — mark this whole section Done in one commit;
       readiness still ≥ floor (`harness scan --fail-under 70` exits 0).
 
@@ -67,10 +75,10 @@ machine. Lift the auto-mode rule, or park P7 and ship v1 without eval numbers.
       (bypass posture + skill + 3 commands, all marker-based/idempotent) next to
       the existing CLAUDE.md/.claude generation, so onboarded repos get the same
       friction-free Qoder environment for free. Natural next code phase.
-- [ ] Guard hardening: `hit()` currently matches repo-relative only — absolute
-      outside-root reads (`~/.ssh`) slip `never_read` (found during Qoder
-      verification). Decide: canonicalize+escape-check vs leave to user-level
-      deny rules; test either way.
+- [ ] Guard hardening: `hit()` matched repo-relative only — absolute
+      outside-root reads (`~/.ssh`) slipped `never_read` (found during Qoder
+      verification). Fixed on branch `harness/dod-closeout` (segment-bounded
+      directory anchor + tests/test_guard_transcript.py); tick at merge.
 - [ ] `.Codex/` convention: promote the session-handoff format to a supported
       `harness handoff` output (or drop it — duplicate of evidence+task list).
 - [ ] Copilot/Cursor adapters (TECHNICAL_PLAN explicitly "not yet built").
