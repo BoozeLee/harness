@@ -8,6 +8,7 @@ from harness.agents import AGENTS
 from harness.bundle import cmd_policy
 from harness.ci import cmd_ci
 from harness.contract import cmd_list, cmd_run, cmd_start, cmd_update
+from harness.eval import VARIANTS, cmd_eval
 from harness.guard import cmd_guard
 from harness.policy import LVL, cmd_init
 from harness.pr import cmd_pr
@@ -91,6 +92,19 @@ def main(argv=None) -> int:
                         "otherwise `pip install harness-agent`)")
     x.add_argument("--force", action="store_true", help="overwrite a hand-written workflow")
     x.set_defaults(f=cmd_ci)
+
+    x = s.add_parser("eval", help="P7: run the raw-vs-harnessed corpus and report metrics")
+    evs = x.add_subparsers(dest="ev", required=True)
+    evs.add_parser("list", help="show the task matrix").set_defaults(f=cmd_eval)
+    y = evs.add_parser("run", help="run evals (fake agent with --dry; provider calls otherwise)")
+    y.add_argument("--task", help="only this task id")
+    y.add_argument("--agent", choices=[*AGENTS, "all"], default="all")
+    y.add_argument("--variant", choices=[*VARIANTS, "all"], default="all")
+    y.add_argument("--dry", action="store_true", help="no provider calls: fake no-op agent, plumbing proof")
+    y.add_argument("--keep", action="store_true", help="keep throwaway workdirs for post-mortem")
+    y.set_defaults(f=cmd_eval)
+    evs.add_parser("report", help="render evals/report.html from evals/results.jsonl").set_defaults(f=cmd_eval)
+
 
     x = s.add_parser("serve", help="local API server for the dashboard (needs server extra)")
     x.add_argument("--host", default="127.0.0.1")
