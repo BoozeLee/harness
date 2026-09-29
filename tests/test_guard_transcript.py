@@ -36,7 +36,7 @@ def test_section1_transcript_reproduces(pyrepo: Path):
         else:
             assert r.returncode == 0 and r.stdout == "", (tool, ti, r.stdout)
     lines = [json.loads(x) for x in (pyrepo / AE / "audit.log").read_text().splitlines()]
-    assert [l["decision"] for l in lines[-4:]] == ["deny", "deny", "deny", "allow"]
+    assert [ev["decision"] for ev in lines[-4:]] == ["deny", "deny", "deny", "allow"]
 
 
 def test_directory_patterns_hit_above_the_repo(pyrepo: Path):
