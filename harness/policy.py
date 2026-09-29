@@ -30,8 +30,12 @@ def hit(rel: str, pats: list[str]) -> bool:
     for p in pats:
         if fnmatch.fnmatch(rel, p) or fnmatch.fnmatch(os.path.basename(rel), p):
             return True
-        if p.endswith("/**") and (rel + "/").startswith(p[:-2]):
-            return True
+        if p.endswith("/**"):
+            d = p[:-3]
+            # directory anchors hit anywhere in the path — including above the repo:
+            # a hook event for "../.ssh/config" names the same secret dir ".ssh/**" does
+            if (rel + "/").startswith(d + "/") or f"/{d}/" in f"/{rel}/":
+                return True
     return False
 
 
