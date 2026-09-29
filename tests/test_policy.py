@@ -59,6 +59,8 @@ def test_jsave_roundtrip_and_version_guard(tmp_path):
     jsave(p, {"a": 1})
     assert json.loads(p.read_text())["schema_version"] == 1
     assert jload(p)["a"] == 1
+    # state files must end with a newline so future edits stay clean diffs (no "\ No newline at end of file")
+    assert p.read_bytes().endswith(b"}\n")
     bad = tmp_path / "bad.json"
     bad.write_text(json.dumps({"no": "schema"}))
     with pytest.raises(SystemExit):
