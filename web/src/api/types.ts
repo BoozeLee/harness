@@ -93,3 +93,16 @@ export interface TaskRow {
   branch: string;
   verdict: string;
 }
+
+export interface Run {
+  id: string;
+  task: string;
+  kind: "verify" | "agent";
+  status: "queued" | "running" | "succeeded" | "failed" | "cancelled";
+  argv: string;
+  worktree: string;
+  created: number;
+  started: number | null;
+  ended: number | null;
+  exit_code: number | null;
+}

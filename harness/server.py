@@ -1,10 +1,12 @@
-"""P1 local API server: loopback-only, bearer token, a thin shell over the core.
+"""P1/P2 local API server: loopback-only, bearer token, a thin shell over the core.
 
 The core (harness.*) stays the only writer of .ai-engineering state; every handler
 here delegates to it. Core fatal errors arrive as die()/sys.exit, which must never
-kill the server process, so all core calls go through SystemExit-safe wrappers."""
+kill the server process, so all core calls go through SystemExit-safe wrappers.
+P2 adds the async runner: verify/agent runs return 202 + run id and stream over SSE."""
 
 import argparse
+import asyncio
 import contextlib
 import io
 import json
@@ -12,17 +14,18 @@ import re
 import secrets
 import shutil
 import subprocess
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel, field_validator
 
 from harness import __version__
 from harness.contract import cmd_start
-from harness.policy import AE, LVL, jload
+from harness.policy import AE, LVL, jload, jsave
+from harness.runner import TERMINAL, Runner, agent_argv, runs_db
 from harness.scan import scan
-from harness.verify import cmd_verify
 
 NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
 TOOLS = ("git", "gh", "claude", "node", "npm", "bun", "uv", "cargo", "go", "ruff", "mypy", "pytest", "playwright")
@@ -70,6 +73,15 @@ def _safe(name: str) -> str:
     return name
 
 
+RUNID_RE = re.compile(r"^[0-9a-f]{16}$")
+
+
+def _run_id(v: str) -> str:
+    if not RUNID_RE.fullmatch(v):
+        raise HTTPException(400, "invalid run id")
+    return v
+
+
 class TaskCreate(BaseModel):
     name: str
     goal: str
@@ -92,14 +104,23 @@ class TaskCreate(BaseModel):
         return v
 
 
-def create_app(repo: Path, token: str) -> FastAPI:
+def create_app(repo: Path, token: str, max_parallel: int = 2) -> FastAPI:
+    # constructed once per app: the Runner owns its loop thread, so no running loop is needed here
+    runner = Runner(repo, runs_db(repo), max_parallel=max_parallel)
+
+    @asynccontextmanager
+    async def lifespan(_app: FastAPI):
+        yield
+        await runner.shutdown()
+
     app = FastAPI(title="Harness API", version=__version__,
-                  docs_url="/api/docs", openapi_url="/api/openapi.json")
+                  docs_url="/api/docs", openapi_url="/api/openapi.json", lifespan=lifespan)
 
     @app.middleware("http")
     async def bearer(request: Request, call_next):
         p = request.url.path
-        public = p in ("/api/health", "/api/docs", "/api/openapi.json")
+        # SSE is public: EventSource cannot send Authorization; loopback-only, same output as terminal verify (§6)
+        public = p in ("/api/health", "/api/docs", "/api/openapi.json") or re.fullmatch(r"/api/runs/[0-9a-f]{16}/events", p)
         if p.startswith("/api") and not public and request.headers.get("authorization") != f"Bearer {token}":
             return JSONResponse({"error": "unauthorized"}, status_code=401)
         return await call_next(request)
@@ -149,14 +170,78 @@ def create_app(repo: Path, token: str) -> FastAPI:
             raise HTTPException(400, out.strip() or "task start failed")
         return {"output": out, "contract": _jload(repo / AE / "tasks" / f"{body.name}.json")}
 
-    @app.post("/api/tasks/{name}/verify")
-    def verify(name: str):
+    @app.post("/api/tasks/{name}/verify", status_code=202)
+    async def verify(name: str, review: bool = True):
         _safe(name)
-        if not (repo / AE / "tasks" / f"{name}.json").exists():
+        cf = repo / AE / "tasks" / f"{name}.json"
+        if not cf.exists():
             raise HTTPException(404, f"no such task: {name}")
-        rc, out = _run_core(cmd_verify, argparse.Namespace(name=name, repo=str(repo)))
-        ep = repo / AE / "evidence" / f"{name}.json"
-        return {"rc": rc, "output": out, "verdict": _jload(ep)["verdict"] if ep.exists() else None}
+        if not review:
+            # review is contract state; the core stays the only writer, so amend via core schema
+            c = _jload(cf)
+            if c.get("review"):
+                c["review"] = False
+                jsave(cf, c)
+        c = _jload(cf)
+        run_id = await runner.create(name, "verify", ["verify", name], c["worktree"])
+        return {"id": run_id, "events": f"/api/runs/{run_id}/events"}
+
+    @app.post("/api/tasks/{name}/run", status_code=202)
+    async def agent_run(name: str):
+        _safe(name)
+        cf = repo / AE / "tasks" / f"{name}.json"
+        if not cf.exists():
+            raise HTTPException(404, f"no such task: {name}")
+        if not shutil.which("claude"):
+            raise HTTPException(409, "claude CLI not found; cannot enqueue an agent run")
+        c = _jload(cf)
+        run_id = await runner.create(name, "agent", agent_argv(repo, name), c["worktree"])
+        return {"id": run_id, "events": f"/api/runs/{run_id}/events"}
+
+    @app.get("/api/runs")
+    async def runs():
+        return await runner.recent()
+
+    @app.get("/api/runs/{run_id}")
+    async def run(run_id: str):
+        r = await runner.get(_run_id(run_id))
+        if not r:
+            raise HTTPException(404, "no such run")
+        return r
+
+    @app.get("/api/runs/{run_id}/events")
+    async def run_events(run_id: str, request: Request):
+        rid = _run_id(run_id)
+        if not await runner.get(rid):
+            raise HTTPException(404, "no such run")
+
+        async def stream():
+            seq = 0
+            while True:
+                if await request.is_disconnected():
+                    return
+                events = await runner.events_after(rid, seq)
+                done = False
+                for e in events:
+                    seq = e["seq"]
+                    # end only once the terminal status EVENT has drained: the runs row
+                    # flips terminal before those last events commit, so a row check could truncate the stream
+                    if e["kind"] == "status" and e["payload"].get("status") in TERMINAL:
+                        done = True
+                    yield f"id: {seq}\nevent: {e['kind']}\ndata: {json.dumps(e['payload'])}\n\n"
+                if done:
+                    yield "event: end\ndata: {}\n\n"
+                    return
+                await asyncio.sleep(0.2)
+
+        return StreamingResponse(stream(), media_type="text/event-stream",
+                                 headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+    @app.post("/api/runs/{run_id}/cancel", status_code=202)
+    async def run_cancel(run_id: str):
+        if not await runner.cancel(_run_id(run_id)):
+            raise HTTPException(409, "run already finished or unknown")
+        return {"cancelled": True}
 
     @app.get("/api/evidence/{name}")
     def evidence(name: str):
@@ -201,5 +286,6 @@ def cmd_serve(a) -> int:
         tf.write_text(token + "\n")
         tf.chmod(0o600)
     print(f"Harness API: http://{a.host}:{a.port}  repo: {r}  token file: {tf}  docs: /api/docs")
-    uvicorn.run(create_app(r, token), host=a.host, port=a.port, log_level="warning")
+    uvicorn.run(create_app(r, token, max_parallel=getattr(a, "max_parallel", 2)),
+                host=a.host, port=a.port, log_level="warning")
     return 0

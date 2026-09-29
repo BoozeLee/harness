@@ -271,6 +271,12 @@ P1 — **API server** (2–3 d): endpoints read-only subset + health probe; Open
 
 P2 — **Runner + streaming** (3–4 d): SSE, cancel, queue, SQLite index;
   acceptance: kill a `task run` mid-flight, worktree stays clean, run row terminal.
+  **Done (2026-09-29):** `harness/runner.py` — dedicated event-loop thread, global
+  `--max-parallel` semaphore + per-worktree lock, PGID kill on cancel, line-streamed
+  output into rebuildable `runs/events` SQLite journal; SSE `/api/runs/{id}/events`
+  (loopback-public, ends on terminal status event); Run/Runs dashboard views with
+  live gate chips; Playwright UAT: queued→running→succeeded PASS streamed;
+  28 tests green (incl. cancel-orphan and SSE-completeness).
 
 P3 — **Dashboard** (3–5 d): views 1–6; Playwright e2e suite *as the repo's own gate*;
   acceptance: a non-terminal user completes full lifecycle in browser incl. one

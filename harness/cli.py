@@ -63,6 +63,7 @@ def main(argv=None) -> int:
     x = s.add_parser("serve", help="local API server for the dashboard (needs server extra)")
     x.add_argument("--host", default="127.0.0.1")
     x.add_argument("--port", type=int, default=8766)
+    x.add_argument("--max-parallel", type=int, default=2, help="concurrent agent/verify runs (plan §4.3)")
     x.set_defaults(f=_serve)
 
     a = p.parse_args(argv)

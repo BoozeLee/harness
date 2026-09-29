@@ -1,9 +1,12 @@
 import json
+import subprocess
+import time
 from pathlib import Path
 
 from fastapi.testclient import TestClient
 from helpers import harness
 
+from harness.policy import jload, jsave
 from harness.server import create_app
 
 TOK = "test-token"
@@ -12,6 +15,17 @@ AUTH = {"Authorization": f"Bearer {TOK}"}
 
 def client_for(repo: Path) -> TestClient:
     return TestClient(create_app(repo, TOK))
+
+
+def wait_run(c: TestClient, run_id: str, want: str = "succeeded", secs: float = 90) -> dict:
+    t0 = time.time()
+    while time.time() - t0 < secs:
+        row = c.get(f"/api/runs/{run_id}", headers=AUTH).json()
+        if row["status"] in (want, "failed", "cancelled"):
+            assert row["status"] == want, row
+            return row
+        time.sleep(0.15)
+    raise AssertionError(f"run {run_id} still {row['status']} after {secs}s")
 
 
 def test_health_is_public_and_probes_tools(pyrepo: Path):
@@ -40,7 +54,9 @@ def test_task_create_verify_and_evidence_flow(pyrepo: Path):
         "def add(a: int, b: int) -> int:\n    return a + b\n\n\n"
         "def mul(a: int, b: int) -> int:\n    return a * b\n")
     v = c.post("/api/tasks/api/verify", headers=AUTH)
-    assert v.status_code == 200 and v.json()["verdict"] == "PASS"
+    assert v.status_code == 202
+    run_id = v.json()["id"]
+    assert wait_run(c, run_id)["task"] == "api"
     rows = c.get("/api/tasks", headers=AUTH).json()
     assert rows == [{"name": "api", "risk": "low", "branch": "harness/api", "verdict": "PASS"}]
     ev = c.get("/api/evidence/api", headers=AUTH)
@@ -48,6 +64,48 @@ def test_task_create_verify_and_evidence_flow(pyrepo: Path):
     h = c.get("/api/evidence/api/html", headers=AUTH)
     assert h.headers["content-security-policy"] == "sandbox"
     assert "PASS" in h.text
+    runs = c.get("/api/runs", headers=AUTH).json()
+    assert [r["id"] for r in runs] == [run_id] and runs[0]["kind"] == "verify"
+
+
+def test_sse_stream_is_public_and_complete(pyrepo: Path):
+    harness(["init"], pyrepo)
+    c = client_for(pyrepo)
+    assert c.post("/api/tasks", headers=AUTH,
+                  json={"name": "stream", "goal": "keep add", "risk": "low", "allow": ["src/**"]}).status_code == 201
+    v = c.post("/api/tasks/stream/verify", headers=AUTH)
+    run_id = v.json()["id"]
+    with c.stream("GET", f"/api/runs/{run_id}/events") as s:  # no Authorization header: EventSource cannot send one
+        assert s.status_code == 200
+        assert s.headers["content-type"].startswith("text/event-stream")
+        events = []
+        for line in s.iter_lines():
+            if line.startswith("event: "):
+                events.append(line[len("event: "):])
+            if events and events[-1] == "end":
+                break
+        assert events.count("gate") >= 2, events[:6]
+        assert "out" in events and "verdict" in events and "status" in events
+    wait_run(c, run_id)
+
+
+def test_cancel_kills_process_group(pyrepo: Path):
+    harness(["init"], pyrepo)
+    c = client_for(pyrepo)
+    c.post("/api/tasks", headers=AUTH, json={"name": "slow", "goal": "sleepy", "risk": "low"})
+    cf = pyrepo / ".ai-engineering" / "tasks" / "slow.json"
+    con = jload(cf)
+    con["gates"] = {"sleepy": {"cmd": "sleep 60", "min_risk": "low"}}
+    jsave(cf, con)
+    run_id = c.post("/api/tasks/slow/verify", headers=AUTH).json()["id"]
+    t0 = time.time()
+    while c.get(f"/api/runs/{run_id}", headers=AUTH).json()["status"] != "running" and time.time() - t0 < 30:
+        time.sleep(0.1)
+    r = c.post(f"/api/runs/{run_id}/cancel", headers=AUTH)
+    assert r.status_code == 202
+    wait_run(c, run_id, want="cancelled", secs=10)
+    left = subprocess.run(["pgrep", "-f", "sleep 60"], capture_output=True, text=True, check=False)
+    assert left.stdout.strip() == "", f"orphan survived PGID kill: {left.stdout}"
 
 
 def test_invalid_and_unknown_names(pyrepo: Path):

@@ -15,3 +15,6 @@ web/.env
 .harness-worktrees/
 .ai-engineering/serve.token
 **/.ai-engineering/serve.token
+.ai-engineering/runs.sqlite
+.ai-engineering/runs.sqlite-wal
+.ai-engineering/runs.sqlite-shm
