@@ -18,3 +18,5 @@ web/.env
 .ai-engineering/runs.sqlite
 .ai-engineering/runs.sqlite-wal
 .ai-engineering/runs.sqlite-shm
+test-results/
+playwright-report/
