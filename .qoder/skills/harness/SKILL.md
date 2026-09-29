@@ -65,7 +65,8 @@ proof: `gh run list` / `gh run watch <id> --log-failed`.
 
 ## Deeper context
 
-- `TECHNICAL_PLAN.md` §7 = phase roadmap + status per phase; §9 = v1 DoD.
+- `ROADMAP.md` (repo root) = the checkoff ledger: next unchecked box is the next move.
+- `TECHNICAL_PLAN.md` §7 = phase roadmap detail + Done notes; §9 = v1 DoD.
 - `.Codex/status.md` = latest session handoff (untracked; where the work
   actually stands, including anything newer than §7).
 - `QODER_INTEGRATION.md` = what this project's Qoder environment provides and
