@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
-import { chmodSync, copyFileSync, existsSync, readFileSync } from "node:fs";
+import { randomBytes } from "node:crypto";
+import { chmodSync, copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { defineConfig } from "@playwright/test";
 
@@ -17,14 +18,16 @@ function mainRepoRoot(): string {
 
 // A task worktree lacks the gitignored serve.token and `harness serve` would mint a fresh
 // one there; copy the main checkout's so the server and the vite bundle agree on one token.
+// On a clean checkout (CI) neither exists: mint it here, before either server starts, because
+// `harness serve` reuses an existing file and vite reads it at config load.
 function syncToken(): void {
   const local = path.join(repoRoot, ".ai-engineering", "serve.token");
   if (existsSync(local)) return;
   const main = path.join(mainRepoRoot(), ".ai-engineering", "serve.token");
-  if (existsSync(main)) {
-    copyFileSync(main, local);
-    chmodSync(local, 0o600);
-  }
+  mkdirSync(path.dirname(local), { recursive: true });
+  if (existsSync(main)) copyFileSync(main, local);
+  else writeFileSync(local, randomBytes(18).toString("base64url"));
+  chmodSync(local, 0o600);
 }
 syncToken();
 

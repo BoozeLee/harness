@@ -399,6 +399,16 @@ P6 — **Team policy sync** (1 wk): policy bundles as Git repo + `harness policy
   Not automated (deliberately): the generated workflow has no policy-drift job, because the
   bundle URL is team infrastructure harness does not store locally — a team that wants it adds
   one `- run: "harness policy status <bundle-url>"` step to the readiness job.
+  The first real run of that workflow on GitHub (f3a176d) was the phase's best evidence: unit,
+  lint and typecheck passed on the runner, and `gate playwright` failed one spec — the Runs
+  view — because `.ai-engineering/serve.token` is gitignored, so on a clean checkout vite baked
+  an empty token while `harness serve` minted its own: every authed /api call 401'd. The seven
+  heading-only specs passed regardless (they assert h1 + no JS errors); the single
+  data-dependent spec (empty-or-rows) was the one that could see it. Fixed in
+  `web/playwright.config.ts`: `syncToken()` now mints the file (0600) when neither the local
+  nor the main checkout has one, before either server starts, since serve reuses an existing
+  token and vite reads it at config load. Reproduced and verified offline by moving the real
+  token aside: 10/10 dashboard specs green with a minted token.
 
 P7 — **Evals** (2 wk): N identical tasks run raw vs harnessed across ≥2 stacks;
   metrics: first-pass gate rate, scope violations, reviewer FAIL reasons, cost/task,
