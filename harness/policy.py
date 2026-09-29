@@ -141,4 +141,5 @@ def cmd_init(a) -> int:
     st["hooks"]["PreToolUse"] = pre + [hook]
     _write_json(sp, st)
     print(f"Initialized {AE}/, .claude/settings.json, {dst.name} and {ad.name} (review with `git diff`).")
+    print("Team     : `harness ci` writes the CI workflow; `harness policy push <bundle-repo>` publishes this policy.")
     return 0

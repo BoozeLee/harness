@@ -1,6 +1,7 @@
 """Stack/gate detection and agent-readiness scoring."""
 
 import json
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -76,13 +77,16 @@ def cmd_scan(a) -> int:
     i = scan(a.repo)
     if a.json:
         print(json.dumps(i, indent=2))
-        return 0
-    print(f"Stacks     : {', '.join(i['stacks']) or 'unknown'}")
-    for k in ("typecheck", "lint", "unit", "build", "e2e"):
-        print(f"  {k:<10}: {i['gates'].get(k, '-')}")
-    print(f"CI         : {', '.join(i['ci']) or 'none'}")
-    print(f"Protected  : {', '.join(i['protected'])}")
-    for n in i["notes"]:
-        print(f"! {n}")
-    print(f"Agent-readiness: {i['readiness']}/100")
+    else:
+        print(f"Stacks     : {', '.join(i['stacks']) or 'unknown'}")
+        for k in ("typecheck", "lint", "unit", "build", "e2e"):
+            print(f"  {k:<10}: {i['gates'].get(k, '-')}")
+        print(f"CI         : {', '.join(i['ci']) or 'none'}")
+        print(f"Protected  : {', '.join(i['protected'])}")
+        for n in i["notes"]:
+            print(f"! {n}")
+        print(f"Agent-readiness: {i['readiness']}/100")
+    if a.fail_under is not None and i["readiness"] < a.fail_under:
+        print(f"harness: readiness {i['readiness']} below --fail-under {a.fail_under}", file=sys.stderr)
+        return 1
     return 0

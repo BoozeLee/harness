@@ -11,18 +11,21 @@ Status: v1 plan. All "verified today" facts below were executed on this machine
 turns a Git repo into a governed agentic dev environment. Lifecycle:
 
 ```
-scan → init → task start → (task run) → verify → pr
+scan → init → task start → (task run) → verify → pr        (per-repo lifecycle)
+                  ↳ ci (workflow) · policy push|pull|status (team standard)
 ```
 
 | Command | Mechanism | State produced |
 |---|---|---|
-| `scan` | Heuristic stack/gate detection: package.json scripts, pyproject/requirements (pytest/ruff/mypy), Cargo.toml, go.mod, Makefile; protects `.env*`, `*.pem`, `secrets/**`, migration/infra/workflow dirs; scores agent-readiness /100 | in-memory dict |
+| `scan` | Heuristic stack/gate detection: package.json scripts, pyproject/requirements (pytest/ruff/mypy), Cargo.toml, go.mod, Makefile; protects `.env*`, `*.pem`, `secrets/**`, migration/infra/workflow dirs; scores agent-readiness /100; `--fail-under N` turns the score into a CI floor (exit 1 below N) | in-memory dict |
 | `init` | Writes `.ai-engineering/{project,policy,verification}.json`, generates `CLAUDE.md` + `AGENTS.md` (never clobbers a hand-written AGENTS.md — writes `AGENTS.md.proposed` unless `--force`), merges allow/deny + a `PreToolUse` guard hook into `.claude/settings.json` | Git-tracked JSON |
 | `guard` | Claude Code PreToolUse hook: reads event JSON on stdin, matches file paths against `never_read`/`protected` and commands against `never_commands`, NDJSON-audits every event, exits 2 to block | `.ai-engineering/audit.log` |
 | `task start` | Creates isolated `git worktree` + branch `harness/<name>`, copies policy into it, builds a **contract**: goal, acceptance criteria, risk level → gate subset (`low` gates only run for `--risk low`), `allowed`/`protected` path patterns, base SHA | `.ai-engineering/tasks/<name>.json` |
 | `task run` | Optional: headless agent inside the worktree — `claude -p "<plan+implement+verify prompt>" --permission-mode acceptEdits` or `codex exec --sandbox workspace-write` (`--agent claude|codex`, default claude) | agent edits |
 | `verify` | Runs each gate command, computes changed-file scope from `git diff` + `git status --porcelain`, runs an independent `claude -p` reviewer against the diff (PASS/FAIL verdict), writes evidence | `.ai-engineering/evidence/<name>.json` + `.html` |
 | `pr` | Subcommands: `create` (refuses unless evidence verdict is PASS; commits excluding harness meta-files, pushes branch, `gh pr create` with gate checklist as body), `view` (maps task → `harness/<name>` branch → PR number via `gh pr list --head`, then `gh pr view`), `status`/`list` (gh passthroughs) | GitHub PR |
+| `policy push\|pull\|status` | Team bundle: `.ai-engineering/{policy,verification}.json` mirrored into a Git repo (path or URL, `--branch`). push commits+pushes only when content changed; pull overwrites local copies byte-exactly from the bundle; status exits 1 on drift (CI hook). Everything else stays local — `project.json` holds machine paths, tasks/evidence/audit are per-repo history | bundle-repo commit |
+| `ci` | Writes `.github/workflows/harness.yml`: a `readiness` job (`harness scan --fail-under N`) and a `gates` job running this repo's own `verification.json` commands, with dep setup inferred from lockfiles (uv/npm/pnpm/yarn, root and depth-1 app dirs) plus `--setup`/`--install` for what inference cannot know. Re-running updates in place via the marker line; a hand-written workflow is only touched with `--force` | GitHub Actions workflow |
 
 Design properties worth preserving as invariants:
 - **Plain files in Git** as the only source of truth (inspectable via `git diff`, no lock-in).
@@ -367,6 +370,35 @@ P5c — **Adapter layer** (1 wk): Codex CLI adapter + settings generators; accep
 
 P6 — **Team policy sync** (1 wk): policy bundles as Git repo + `harness policy push/pull`,
   CI `harness scan --fail-under <n>` and `harness verify` in GitHub Actions.
+  **Done (2026-09-29):** `harness policy push|pull|status <remote> [--branch]`
+  (harness/bundle.py) syncs the two shared files — `policy.json` + `verification.json` —
+  through a Git repo (bare path or URL) cloned into a temp dir per call; push commits only
+  on content change ("unchanged", no empty commits), pull overwrites byte-exactly, status
+  exits 1 on drift so CI can enforce the team standard. `project.json`, tasks, evidence and
+  audit.log are deliberately excluded (machine paths / per-repo history).
+  `harness scan --fail-under N` turns the readiness score into a floor (exit 1 below N,
+  still emits `--json`). `harness ci [--fail-under N] [--setup CMD] [--install CMD] [--force]`
+  (harness/ci.py) writes `.github/workflows/harness.yml`: `readiness` job (install harness →
+  `harness scan --fail-under`) and `gates` job running **the repo's own gate commands**, so
+  CI and `harness verify` cannot drift. Deliberate deviation from the wording "…and
+  `harness verify` in Actions": verify is contract- and worktree-bound (needs
+  `.ai-engineering/tasks/<name>.json` + a base SHA) and a PR checkout has neither, so CI
+  executes the gate set itself instead of faking a contract. Dep setup is inferred from
+  lockfiles at the root and in depth-1 app dirs (uv → `pip install uv && uv sync --frozen`
+  because runners lack uv; npm/pnpm/yarn per dir, node_modules skipped), `--setup` covers
+  what inference can't know (Playwright browsers), `--install` covers private harness repos
+  (default: `pip install .` when the repo houses harness, else `pip install
+  git+${{ secrets.HARNESS_REPO }}` — the package is **not** on PyPI). Regeneration is
+  marker-based; a hand-written workflow is only replaced with `--force`.
+  Acceptance: tests/test_bundle.py 8 + tests/test_ci.py 12 + 2 floor tests in
+  tests/test_scan.py, all offline against local bare repos; the emitted YAML is parsed with
+  pyyaml (dev dep) and its steps asserted equal to `verification.json`. Dogfooded live:
+  `harness ci` put this repo's workflow in place (readiness 70 → 80, floor 70 passes / 95
+  fails), and push→status→re-push→drift→pull round-tripped against a local bundle repo,
+  pull restoring exact bytes. Suite 71 green, ruff+mypy clean, e2e 11/11 unchanged.
+  Not automated (deliberately): the generated workflow has no policy-drift job, because the
+  bundle URL is team infrastructure harness does not store locally — a team that wants it adds
+  one `- run: "harness policy status <bundle-url>"` step to the readiness job.
 
 P7 — **Evals** (2 wk): N identical tasks run raw vs harnessed across ≥2 stacks;
   metrics: first-pass gate rate, scope violations, reviewer FAIL reasons, cost/task,
@@ -386,6 +418,8 @@ Deferred (per README): hosted product / Review Agent SDK commercial terms.
 
 ## 9. Definition of done for v1
 Repo dogfoods harness: all gates pass, Playwright suite covers the dashboard,
+`.github/workflows/harness.yml` (generated by `harness ci`) runs the readiness floor and the
+same gate commands on every push/PR,
 guard blocks reproduce the §1 transcript, `harness --help` works after
 `uv tool install .`, and a fresh Omarchy machine is bootstrapped by the §3 command
 block alone.

@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
 
+from helpers import harness
+
 from harness.policy import SCHEMA
 from harness.scan import scan
 
@@ -34,3 +36,21 @@ def test_scan_protected_known_dirs(tmp_path: Path):
     i = scan(tmp_path)
     assert "prisma/migrations/**" in i["protected"]
     assert i["ci"] == ["ci.yml"]
+
+
+def test_scan_fail_under_blocks_and_passes(pyrepo: Path):
+    """pyrepo scores 60 bare (unit+lint+typecheck), 70 once init adds CLAUDE.md + policy."""
+    assert scan(pyrepo)["readiness"] == 60
+    blocked = harness(["scan", "--fail-under", "61"], pyrepo)
+    assert blocked.returncode == 1
+    assert "--fail-under" in blocked.stdout + blocked.stderr
+    assert harness(["init"], pyrepo).returncode == 0
+    assert scan(pyrepo)["readiness"] == 70
+    assert harness(["scan", "--fail-under", "70"], pyrepo).returncode == 0
+    assert harness(["scan", "--fail-under", "71"], pyrepo).returncode == 1
+
+
+def test_scan_fail_under_still_emits_json(pyrepo: Path):
+    blocked = harness(["scan", "--json", "--fail-under", "99"], pyrepo)
+    assert blocked.returncode == 1
+    assert json.loads(blocked.stdout)["readiness"] == 60

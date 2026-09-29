@@ -5,6 +5,8 @@ import sys
 
 from harness import __version__
 from harness.agents import AGENTS
+from harness.bundle import cmd_policy
+from harness.ci import cmd_ci
 from harness.contract import cmd_list, cmd_run, cmd_start, cmd_update
 from harness.guard import cmd_guard
 from harness.policy import LVL, cmd_init
@@ -24,6 +26,7 @@ def main(argv=None) -> int:
 
     x = s.add_parser("scan", help="detect stacks, gates, protected paths; score agent-readiness")
     x.add_argument("--json", action="store_true")
+    x.add_argument("--fail-under", type=int, metavar="N", help="exit 1 when readiness scores below N (CI gate)")
     x.set_defaults(f=cmd_scan)
 
     x = s.add_parser("init", help="write .ai-engineering/, CLAUDE.md, AGENTS.md and .claude/settings.json")
@@ -67,6 +70,27 @@ def main(argv=None) -> int:
     prs.add_parser("status", help="gh pr status")
     prs.add_parser("list", help="gh pr list")
     x.set_defaults(f=cmd_pr)
+
+    x = s.add_parser("policy", help="sync the team policy bundle (policy.json + verification.json) with a Git repo")
+    ps = x.add_subparsers(dest="polc", required=True)
+    for nm, hp in (("push", "publish local policy + gates to the bundle repo"),
+                   ("pull", "adopt the bundle as the local team standard"),
+                   ("status", "exit 1 when the local bundle differs from the remote")):
+        y = ps.add_parser(nm, help=hp)
+        y.add_argument("remote", help="bundle repo path or URL")
+        y.add_argument("--branch", default="main")
+    x.set_defaults(f=cmd_policy)
+
+    x = s.add_parser("ci", help="generate .github/workflows/harness.yml (readiness floor + gates)")
+    x.add_argument("--fail-under", type=int, default=70, metavar="N")
+    x.add_argument("--setup", action="append", metavar="CMD",
+                   help="extra step the gates need before they can run (repeatable), e.g. "
+                        '"cd web && npx playwright install --with-deps chromium"')
+    x.add_argument("--install", metavar="CMD",
+                   help="how CI installs the harness CLI (default: this repo when it is harness, "
+                        "otherwise `pip install harness-agent`)")
+    x.add_argument("--force", action="store_true", help="overwrite a hand-written workflow")
+    x.set_defaults(f=cmd_ci)
 
     x = s.add_parser("serve", help="local API server for the dashboard (needs server extra)")
     x.add_argument("--host", default="127.0.0.1")
