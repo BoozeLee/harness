@@ -18,3 +18,4 @@ test("malformed segments throw", () => {
 test("empty string yields empty array", () => {
   assert.deepEqual(expandRanges(""), []);
 });
+

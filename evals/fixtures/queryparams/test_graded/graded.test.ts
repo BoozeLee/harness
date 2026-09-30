@@ -19,3 +19,4 @@ test("empty and bare params yield empty strings", () => {
   assert.deepEqual(parseQuery("k"), { k: "" });
   assert.deepEqual(parseQuery(""), {});
 });
+

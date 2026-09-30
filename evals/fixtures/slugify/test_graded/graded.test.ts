@@ -18,3 +18,4 @@ test("empty or symbol-only input yields empty string", () => {
   assert.equal(slugify(""), "");
   assert.equal(slugify("!!! ???"), "");
 });
+

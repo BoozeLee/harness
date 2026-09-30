@@ -5,8 +5,14 @@
     "strict": true,
     "rootDir": ".",
     "outDir": "dist",
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "moduleDetection": "force"
   },
-  "include": ["src", "tests"],
-  "exclude": ["test_graded"]
+  "include": [
+    "src",
+    "tests"
+  ],
+  "exclude": [
+    "test_graded"
+  ]
 }

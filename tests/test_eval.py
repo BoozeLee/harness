@@ -34,12 +34,20 @@ def test_corpus_fixtures_start_green(tmp_path: Path):
     assert r.returncode == 0, r.stdout[-800:]
 
 
-def test_dry_run_produces_honest_metric_rows(tmp_path: Path):
-    wd = tmp_path / "wd"
-    wd.mkdir()
+def _clean_repo_copy(wd: Path) -> None:
     subprocess.run(["cp", "-r", str(REPO_ROOT / "evals"), str(wd / "evals")], check=True)
     subprocess.run(["cp", "-r", str(REPO_ROOT / "harness"), str(wd / "harness")], check=True)
     (wd / "pyproject.toml").write_text((REPO_ROOT / "pyproject.toml").read_text())
+    for art in ("results.jsonl", "report.html"):
+        p = wd / "evals" / art
+        if p.exists():
+            p.unlink()
+
+
+def test_dry_run_produces_honest_metric_rows(tmp_path: Path):
+    wd = tmp_path / "wd"
+    wd.mkdir()
+    _clean_repo_copy(wd)
     r = harness(["--repo", str(wd), "eval", "run", "--task", "wordcount",
                  "--agent", "claude", "--variant", "all", "--dry"], wd)
     assert r.returncode == 0, r.stdout[-1500:] + r.stderr[-800:]
@@ -62,9 +70,7 @@ def test_dry_run_produces_honest_metric_rows(tmp_path: Path):
 def test_dry_run_full_matrix(tmp_path: Path):
     wd = tmp_path / "wd"
     wd.mkdir()
-    subprocess.run(["cp", "-r", str(REPO_ROOT / "evals"), str(wd / "evals")], check=True)
-    subprocess.run(["cp", "-r", str(REPO_ROOT / "harness"), str(wd / "harness")], check=True)
-    (wd / "pyproject.toml").write_text((REPO_ROOT / "pyproject.toml").read_text())
+    _clean_repo_copy(wd)
     r = harness(["--repo", str(wd), "eval", "run", "--task", "dedup", "--dry"], wd)
     assert r.returncode == 0, r.stdout[-1500:] + r.stderr[-800:]
     lines = (wd / "evals" / "results.jsonl").read_text().splitlines()

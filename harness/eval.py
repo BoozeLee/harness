@@ -41,7 +41,7 @@ def load_tasks(r: Path) -> list[dict]:
 def _score_cmds(stack: str) -> tuple[str, str]:
     if stack == "python":
         return "uv run pytest -q test_graded", "uv run pytest -q"
-    return "npm install --prefer-offline --no-audit --no-fund && npx tsc && node --test dist/test_graded", \
+    return "npm install --prefer-offline --no-audit --no-fund && npx tsc && node --test test_graded/graded.test.ts", \
            "npm install --prefer-offline --no-audit --no-fund && npm test"
 
 
@@ -83,7 +83,8 @@ def _grade(wd: Path, task: dict, fixture: Path) -> tuple[bool, int, str]:
     if task["stack"] != "python":
         (wd / "tsconfig.json").write_text(json.dumps({
             "compilerOptions": {"target": "ES2022", "module": "commonjs", "strict": True,
-                                "rootDir": ".", "outDir": "dist", "esModuleInterop": True},
+                                "rootDir": ".", "outDir": "dist", "esModuleInterop": True,
+                                "moduleDetection": "force"},
             "include": ["src", "tests", "test_graded"]}) + "\n")
     rc, out, _ = sh(grade_cmd, str(wd), timeout=900)
     return rc == 0, rc, out[-600:]

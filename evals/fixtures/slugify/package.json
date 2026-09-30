@@ -4,9 +4,10 @@
   "version": "0.1.0",
   "scripts": {
     "build": "tsc",
-    "test": "tsc && node --test tests/"
+    "test": "tsc && node --test tests/basic.test.ts"
   },
   "devDependencies": {
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "@types/node": "^24.0.0"
   }
 }
