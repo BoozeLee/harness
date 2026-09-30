@@ -132,10 +132,17 @@ W2 (by 2026-10-04):
 
 W3 (by 2026-10-11):
 - [x] v1.0.0 version bump in both sites (4a1ac1d), `harness --version` prints
-      "harness 1.0.0"
-- [ ] changelog from `cc27ff1..HEAD` + README quickstart re-verified via
-      scripts/smoke.sh from a clean clone
-- [ ] tag v1.0.0 + `gh release create` (explicit user ask required — not yet given)
+      "harness 1.0.0"; CHANGELOG.md landed (1179167)
+- [x] README quickstart verified by scripts/smoke.sh from a fresh clone at the
+      adoption commit (dd74400, Actions green)
+- [x] **Adoption proof (G2): gitcrate governed end to end** —
+      docs/adoption/gitcrate.md; two first-ten-minutes product defects found
+      and shipped with tests: ci floor clamp `min(70, measured)` and honest
+      untracked-file stat in verify/runner
+- [ ] tag v1.0.0 + `gh release create` — commands prepared, explicit user ask
+      required (not yet given)
+- [ ] G1 claude half: one-shot job 720044ff fires 07:05 Brussels at the quota
+      reset; kill criterion + waiver documented there
 
 Post-v1 (no deadline): Qoder adapter in `harness init` (emit
 `.qoder/skills+commands+settings` exactly as §2, marker-idempotent — the
