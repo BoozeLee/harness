@@ -4,7 +4,7 @@ import argparse
 import sys
 
 from harness import __version__
-from harness.agents import AGENTS
+from harness.agents import AGENTS, cmd_agents
 from harness.bundle import cmd_policy
 from harness.ci import cmd_ci
 from harness.contract import cmd_list, cmd_run, cmd_start, cmd_update
@@ -35,6 +35,10 @@ def main(argv=None) -> int:
     x.set_defaults(f=cmd_init)
 
     s.add_parser("guard", help=argparse.SUPPRESS).set_defaults(f=cmd_guard)
+
+    x = s.add_parser("agents", help="show supported agent binaries and enforcement tiers")
+    x.add_argument("--json", action="store_true", help="machine-readable JSON output")
+    x.set_defaults(f=cmd_agents)
 
     t = s.add_parser("task", help="manage contracts").add_subparsers(dest="t", required=True)
     x = t.add_parser("start")
