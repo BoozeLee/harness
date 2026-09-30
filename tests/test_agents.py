@@ -11,6 +11,8 @@ from pathlib import Path
 
 from helpers import harness
 
+from harness.agents import AGENT_SPECS, AGENTS, build_argv
+
 AGENT_SCRIPT = """#!/bin/sh
 echo %s >> "$AGENT_LOG"
 printf '%%s\\n' "$@" >> "$AGENT_LOG"
@@ -93,3 +95,41 @@ def test_existing_agents_md_is_never_clobbered(tmp_path: Path, pyrepo: Path):
     assert harness(["init"], pyrepo).returncode == 0
     assert (pyrepo / "AGENTS.md").read_text() == "# hand-written\n"
     assert (pyrepo / "AGENTS.md.proposed").exists()
+
+
+def test_registry_argv_contract():
+    prompt = "prompt-bytes"
+    for name, spec in AGENT_SPECS.items():
+        argv = build_argv(name, prompt)
+        assert argv == spec.argv(prompt)
+        if spec.enforcement_tier == "guard-hook":
+            assert argv == [spec.binary, "-p", prompt, "--permission-mode", "acceptEdits"]
+        elif spec.enforcement_tier == "sandbox+verify":
+            assert argv == [spec.binary, "exec", "--sandbox", "workspace-write", prompt]
+    assert AGENTS == tuple(AGENT_SPECS)
+
+
+def test_unknown_agent_lists_registry_keys(capsys):
+    import pytest
+    with pytest.raises(SystemExit) as exc:
+        build_argv("missing", "prompt")
+    assert exc.value.code == 1
+    assert f"unknown agent: missing (supported: {', '.join(AGENT_SPECS)})" in capsys.readouterr().err
+
+
+def test_agents_json_probes_fake_path(tmp_path: Path, pyrepo: Path):
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    spec_names = list(AGENT_SPECS)
+    present = AGENT_SPECS[spec_names[0]]
+    shim = bin_dir / present.binary
+    shim.write_text("#!/bin/sh\nprintf 'fake-agent 1.0\\n'\n")
+    shim.chmod(0o755)
+    env = {"PATH": f"{bin_dir}:/usr/bin:/bin"}
+    proc = harness(["agents", "--json"], pyrepo, env=env)
+    assert proc.returncode == 0, proc.stderr
+    rows = json.loads(proc.stdout)
+    by_name = {row["name"]: row for row in rows}
+    assert by_name[spec_names[0]]["present"] is True
+    assert by_name[spec_names[0]]["version"] == "fake-agent 1.0"
+    assert by_name[spec_names[1]]["present"] is False

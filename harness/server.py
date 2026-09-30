@@ -22,7 +22,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Streamin
 from pydantic import BaseModel, field_validator
 
 from harness import __version__
-from harness.agents import AGENTS
+from harness.agents import AGENT_SPECS, AGENTS
 from harness.contract import cmd_start
 from harness.policy import AE, LVL, jload, jsave
 from harness.runner import TERMINAL, Runner, agent_argv, runs_db
@@ -33,7 +33,8 @@ NAME_RE = re.compile(rf"^{NAME_CORE}$")
 # archived shot names: <sha12>-<slug>.<ext> — nothing else is fetchable
 SHOT_CORE = r"[a-f0-9]{12}-[A-Za-z0-9._-]{1,90}\.(?:png|jpe?g)"
 SHOT_NAME_RE = re.compile(rf"^{SHOT_CORE}$")
-TOOLS = ("git", "gh", "claude", "codex", "node", "npm", "bun", "uv", "cargo", "go", "ruff", "mypy", "pytest", "playwright")
+TOOLS = ("git", "gh", *(spec.binary for spec in AGENT_SPECS.values()),
+         "node", "npm", "bun", "uv", "cargo", "go", "ruff", "mypy", "pytest", "playwright")
 
 
 def _version_of(tool: str) -> str | None:

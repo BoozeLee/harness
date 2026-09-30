@@ -368,6 +368,17 @@ P5c — **Adapter layer** (1 wk): Codex CLI adapter + settings generators; accep
   machine). Fix shipped alongside: cmd_run now prints nonempty agent output
   (previously swallowed).
 
+#### Adding an agent
+
+Add one entry to `AGENT_SPECS` in `harness/agents.py`, declaring its executable
+`binary`, headless `argv` builder (prompt to argv list), enforcement tier, and
+human-readable description. The registry drives supported-agent choices,
+dispatch, and binary probes. Validate the new entry with `harness agents` (and
+the registry contract tests); this command checks binary presence and reports
+its version and tier without contacting a provider. Enforcement asymmetry stays
+per tier: Claude uses the guard hook, while Codex uses its sandbox plus the
+after-the-fact verify scope gate.
+
 P6 — **Team policy sync** (1 wk): policy bundles as Git repo + `harness policy push/pull`,
   CI `harness scan --fail-under <n>` and `harness verify` in GitHub Actions.
   **Done (2026-09-29):** `harness policy push|pull|status <remote> [--branch]`
