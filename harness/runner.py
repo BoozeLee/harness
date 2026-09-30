@@ -246,6 +246,8 @@ class Runner:
                         await self._emit(run_id, "gate", {"name": "independent-review", "state": "done",
                                                           "ok": bool(ok)})
                     stat = git(wt, "diff", "--shortstat", c["base"])[1]
+                    if not stat.strip():
+                        stat = f"{len(ch)} untracked file(s) added" if ch else ""
                     passed = all(x["ok"] for x in res if x["required"])
                     ev = {"task": task, "goal": c["goal"], "accept": c["accept"], "results": res, "files": ch,
                           "stat": stat, "verdict": "PASS" if passed else "FAIL", "time": int(_now())}

@@ -41,6 +41,8 @@ def cmd_verify(a) -> int:
         res.append({"name": "independent-review", "cmd": "claude -p reviewer", "ok": bool(ok), "secs": 0,
                     "tail": out, "required": True, "skipped": ok is None})
     stat = git(wt, "diff", "--shortstat", c["base"])[1]
+    if not stat.strip():
+        stat = f"{len(ch)} untracked file(s) added" if ch else ""
     ok = all(x["ok"] for x in res if x["required"])
     ev = {"task": c["name"], "goal": c["goal"], "accept": c["accept"], "results": res, "files": ch,
           "stat": stat, "verdict": "PASS" if ok else "FAIL", "time": int(time.time())}

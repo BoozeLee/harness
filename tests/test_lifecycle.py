@@ -115,3 +115,21 @@ def test_e2e_gate_archives_shots_via_cli(pyrepo: Path):
     dest = pyrepo / ".ai-engineering" / "evidence" / "et" / shot["file"]
     assert hashlib.sha256(dest.read_bytes()).hexdigest() == shot["sha256"]
     assert "test-results" not in " ".join(ev["files"])  # artifacts stay out of scope
+
+
+def test_verify_stat_names_untracked_agent_work(pyrepo: Path):
+    """Adoption defect (gitcrate): an agent that only adds new files produced a
+    PASS verdict printed as '(no diff)' — git diff never sees untracked paths."""
+    harness(["init"], pyrepo)
+    started = harness(["task", "start", "un", "--goal", "g", "--risk", "low",
+                       "--allow", "pytest.ini"], pyrepo)
+    assert started.returncode == 0
+    c = load(pyrepo / ".ai-engineering" / "tasks" / "un.json")
+    wt = Path(c["worktree"])
+    (wt / "pytest.ini").write_text("[pytest]\ntestpaths = tests\n")
+
+    v = harness(["verify", "un"], pyrepo)
+    assert v.returncode == 0, v.stdout + v.stderr
+    ev = load(pyrepo / ".ai-engineering" / "evidence" / "un.json")
+    assert "1 untracked file(s) added" in ev["stat"]
+    assert "no diff" not in v.stdout

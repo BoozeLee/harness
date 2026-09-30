@@ -88,10 +88,31 @@ def test_ci_adds_node_setup_and_lockfile_install(tmp_path: Path):
 
 def test_ci_without_gates_still_runs_the_readiness_floor(tmp_path: Path):
     r = plain_repo(tmp_path, "empty")
+    before = json.loads(harness(["scan", "--json"], r).stdout)["readiness"]
     assert harness(["ci"], r).returncode == 0
     y = generated(r)
     assert "gate " not in y
-    assert "harness scan --fail-under 70" in y
+    assert f"harness scan --fail-under {min(70, before)}" in y
+
+
+def test_ci_clamps_default_floor_to_measured_readiness(tmp_path: Path):
+    """Adoption defect (gitcrate, readiness 50): a hardcoded 70 floor meant every
+    new repo's readiness job failed on its first push."""
+    r = plain_repo(tmp_path, "weak")
+    measured = json.loads(harness(["scan", "--json"], r).stdout)["readiness"]
+    out = harness(["ci"], r)
+    assert out.returncode == 0
+    assert measured < 70, "fixture must score below the 70 default to prove clamping"
+    assert f"clamped floor to {measured}" in out.stdout
+    assert f"harness scan --fail-under {measured}" in generated(r)
+
+
+def test_ci_explicit_floor_is_never_clamped(tmp_path: Path):
+    r = plain_repo(tmp_path, "strict")
+    out = harness(["ci", "--fail-under", "70"], r)
+    assert out.returncode == 0
+    assert "clamped" not in out.stdout
+    assert "harness scan --fail-under 70" in generated(r)
 
 
 def test_ci_regenerates_its_own_file_but_never_a_handwritten_one(pyrepo: Path):

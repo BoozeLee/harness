@@ -83,7 +83,8 @@ def main(argv=None) -> int:
     x.set_defaults(f=cmd_policy)
 
     x = s.add_parser("ci", help="generate .github/workflows/harness.yml (readiness floor + gates)")
-    x.add_argument("--fail-under", type=int, default=70, metavar="N")
+    x.add_argument("--fail-under", type=int, metavar="N",
+                   help="readiness floor in the workflow (default: min(70, the repo's measured score))")
     x.add_argument("--setup", action="append", metavar="CMD",
                    help="extra step the gates need before they can run (repeatable), e.g. "
                         '"cd web && npx playwright install --with-deps chromium"')
