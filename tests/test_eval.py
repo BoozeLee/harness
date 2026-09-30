@@ -52,9 +52,11 @@ def test_dry_run_produces_honest_metric_rows(tmp_path: Path):
         assert rec["agent"] == "fake" and rec["graded_pass"] is False, rec
         assert rec["agent_rc"] == 0 and rec["wall"] >= 0
         assert "scope_violations" in rec
-    # honest finding kept as an assertion: visible placeholder gates pass with an
-    # empty diff, so gates=PASS while graded=FAIL for a do-nothing agent.
-    assert by_variant["harnessed"]["verdict"] == "PASS"
+    # honest comparison: with --risk medium the real independent-review gate runs
+    # in the dry loop (fake claude emits no VERDICT line -> FAIL), so a
+    # do-nothing agent can no longer reach verdict=PASS.
+    assert by_variant["harnessed"]["verdict"] == "FAIL"
+    assert "review_note" in by_variant["harnessed"]
 
 
 def test_dry_run_full_matrix(tmp_path: Path):
@@ -75,7 +77,7 @@ def test_report_groups_and_escapes(tmp_path: Path):
     recs = [
         {"ts": 1, "task": "wordcount", "stack": "python", "agent": "claude", "variant": "raw",
          "dry": False, "graded_pass": True, "agent_rc": 0, "agent_wall": 12.0, "wall": 12.0,
-         "scope_violations": 2},
+         "verdict": None, "scope_violations": 2},
         {"ts": 2, "task": "wordcount", "stack": "python", "agent": "claude", "variant": "harnessed",
          "dry": False, "graded_pass": True, "agent_rc": 0, "agent_wall": 20.0, "wall": 20.0,
          "verdict": "PASS", "review_note": "<script>alert(1)</script>", "scope_violations": 0},
@@ -87,5 +89,6 @@ def test_report_groups_and_escapes(tmp_path: Path):
     html = (tmp_path / "evals" / "report.html").read_text()
     assert "<script>alert" not in html and "&lt;script&gt;" in html
     assert "raw vs harnessed" in html
-    assert html.count("<tr><td>raw") == 1 and ">0/1<" in html and ">1/1<" in html
+    assert html.count("<tr><td>raw") == 1 and ">1/1<" in html
+    assert ">/1<" not in html  # raw rows show no fake gate counts
     assert "Content-Security-Policy" in html

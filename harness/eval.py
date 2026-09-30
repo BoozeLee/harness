@@ -77,6 +77,8 @@ def _run_agent(agent: str, wd: Path, goal: str, accept: list[str], gates: list[s
 
 def _grade(wd: Path, task: dict, fixture: Path) -> tuple[bool, int, str]:
     grade_cmd = _score_cmds(task["stack"])[0]
+    if (wd / "test_graded").exists():
+        shutil.rmtree(wd / "test_graded")
     shutil.copytree(fixture / "test_graded", wd / "test_graded")
     if task["stack"] != "python":
         (wd / "tsconfig.json").write_text(json.dumps({
@@ -93,53 +95,74 @@ def _harness_cli(repo: Path, *args: str) -> tuple[int, str]:
     return rc, out
 
 
+def _review_note(vout: str) -> str:
+    tail = vout.split("independent-review")[-1] if "independent-review" in vout else vout
+    return tail[-300:]
+
+
 def run_one(task: dict, agent: str, variant: str, dry: bool, keep: bool) -> dict:
+    """One eval: raw or harnessed. Honesty rules enforced here:
+    - the graded suite lives in a separate mkdtemp dir (unpredictable sibling
+      paths defeat an agent that tries to peek at the answer key),
+    - harnessed runs `--risk medium` exactly like production (init's verification
+     .json marks typecheck/e2e medium; the medium slice of discovered gates +
+      independent review is what a real task would get),
+    - `wall` is the WHOLE pipeline cost per variant, not just the agent call."""
     root = Path(__file__).resolve().parent.parent
     src = root / EVALS_DIR / "fixtures" / task["id"]
     if not src.is_dir():
         die(f"missing fixture for {task['id']}: {src}")
     dirs = Path(tempfile.mkdtemp(prefix=f"eval-{task['id']}-{variant}-"))
-    shutil.copytree(src, dirs / "fixture", ignore=shutil.ignore_patterns("node_modules", ".venv"))
-    wd = _fresh_fixture(src, dirs)
-    env = _fake_agent(dirs) if dry else None
-    agent_cmd = _score_cmds(task["stack"])[1]
-    allowed = [task["module"], "tests/**"]
-    accept_args: list[str] = []
-    for x in task["accept"]:
-        accept_args += ["--accept", x]
+    key = Path(tempfile.mkdtemp(prefix="evalkey-"))  # answer key: no predictable path
+    try:
+        shutil.copytree(src, key / "fixture", ignore=shutil.ignore_patterns("node_modules", ".venv"))
+        wd = _fresh_fixture(src, dirs)
+        env = _fake_agent(dirs) if dry else None
+        agent_cmd = _score_cmds(task["stack"])[1]
+        allowed = [task["module"], "tests/**"]
+        accept_args: list[str] = []
+        for x in task["accept"]:
+            accept_args += ["--accept", x]
 
-    rec: dict = {"ts": int(time.time()), "task": task["id"], "stack": task["stack"],
-                 "agent": "fake" if dry else agent, "variant": variant, "dry": dry}
-    if variant == "harnessed":
-        rc, _ = _harness_cli(wd, "init")
-        if rc:
-            rec["init_failed"] = True
-        _harness_cli(wd, "task", "start", task["id"], "--goal", task["goal"], *accept_args,
-                     "--allow", task["module"], "--risk", "low")
-        tcon = json.loads((wd / ".ai-engineering" / "tasks" / f"{task['id']}.json").read_text())
-        awd = Path(tcon["worktree"])
-        rec["agent_rc"], rec["agent_wall"], rec["agent_tail"] = _run_agent(
-            agent, awd, task["goal"], task["accept"], [agent_cmd], env)
-        _, vout = _harness_cli(wd, "verify", task["id"])
-        rec["verdict"] = "PASS" if "Verdict: PASS" in vout else ("FAIL" if "Verdict:" in vout else "ERROR")
-        rec["review_note"] = "" if rec["verdict"] == "PASS" else vout[-300:]
-        changed = changed_files(awd, tcon["base"])
-    else:
-        rec["agent_rc"], rec["agent_wall"], rec["agent_tail"] = _run_agent(
-            agent, wd, task["goal"], task["accept"], [agent_cmd], env)
-        changed = changed_files(wd, git(wd, "rev-parse", "HEAD")[1])
-    rec["scope_violations"] = sum(1 for f in changed if not hit(f, allowed))
-    ok, grc, gout = _grade(wd if variant == "raw" else awd, task, dirs / "fixture")
-    rec["graded_pass"] = ok
-    rec["grade_rc"] = grc
-    if not ok:
-        rec["grade_tail"] = gout
-    rec["wall"] = rec.get("agent_wall", 0)
-    if keep:
-        rec["kept"] = str(dirs)
-    else:
-        shutil.rmtree(dirs, ignore_errors=True)
-    return rec
+        rec: dict = {"ts": int(time.time()), "task": task["id"], "stack": task["stack"],
+                     "agent": "fake" if dry else agent, "variant": variant, "dry": dry}
+        t0 = time.time()
+        if variant == "harnessed":
+            rc, _ = _harness_cli(wd, "init")
+            if rc:
+                rec["init_failed"] = True
+            _harness_cli(wd, "task", "start", task["id"], "--goal", task["goal"], *accept_args,
+                         "--allow", task["module"], "--risk", "medium")
+            tcon = json.loads((wd / ".ai-engineering" / "tasks" / f"{task['id']}.json").read_text())
+            awd = Path(tcon["worktree"])
+            rec["agent_rc"], rec["agent_wall"], rec["agent_tail"] = _run_agent(
+                agent, awd, task["goal"], task["accept"], [agent_cmd], env)
+            _, vout = _harness_cli(wd, "verify", task["id"])
+            rec["verdict"] = "PASS" if "Verdict: PASS" in vout else ("FAIL" if "Verdict:" in vout else "ERROR")
+            rec["review_note"] = "" if rec["verdict"] == "PASS" else _review_note(vout)
+            changed = changed_files(awd, tcon["base"])
+            target = awd
+        else:
+            base = git(wd, "rev-parse", "HEAD")[1]
+            rec["agent_rc"], rec["agent_wall"], rec["agent_tail"] = _run_agent(
+                agent, wd, task["goal"], task["accept"], [agent_cmd], env)
+            changed = changed_files(wd, base)  # diff-vs-base includes agent commits
+            rec["verdict"] = None
+            target = wd
+        rec["wall"] = round(time.time() - t0, 1)
+        rec["scope_violations"] = sum(1 for f in changed if not hit(f, allowed))
+        ok, grc, gout = _grade(target, task, key / "fixture")
+        rec["graded_pass"] = ok
+        rec["grade_rc"] = grc
+        if not ok:
+            rec["grade_tail"] = gout
+        if keep:
+            rec["kept"] = str(dirs)
+        else:
+            shutil.rmtree(dirs, ignore_errors=True)
+        return rec
+    finally:
+        shutil.rmtree(key, ignore_errors=True)
 
 
 def cmd_eval(a) -> int:
@@ -166,7 +189,7 @@ def cmd_eval(a) -> int:
                         f.write(json.dumps(rec) + "\n")
                         f.flush()
                         print(f"{t['id']:<14} {rec['agent']:<7} {v:<10} graded={'PASS' if rec['graded_pass'] else 'FAIL'} "
-                              f"gates={rec.get('verdict', 'n/a'):<8} scope={rec['scope_violations']} wall={rec['wall']}s")
+                              f"gates={rec.get('verdict') or 'n/a':<8} scope={rec['scope_violations']} wall={rec['wall']}s")
         print(f"\nresults appended: {out_path}")
         return 0
     if a.ev == "report":
@@ -207,11 +230,12 @@ def render_report(rows: list[dict]) -> str:
                 continue
             graded = sum(1 for x in recs if x.get("graded_pass"))
             fp = sum(1 for x in recs if x.get("verdict") == "PASS")
+            gates_cell = "—" if all(x.get("verdict") is None for x in recs) else f"{fp}/{len(recs)}"
             viol = sum(x.get("scope_violations", 0) for x in recs)
             wall = round(sum(x.get("wall", 0) for x in recs) / len(recs), 1)
             notes = "; ".join(e(str(x.get("review_note", ""))[:80]) for x in recs if x.get("review_note"))
             cls = "pass" if graded == len(recs) else "fail"
             body.append(f"<tr><td>{e(v)}</td><td>{len(recs)}</td><td class={cls}>{graded}/{len(recs)}</td>"
-                        f"<td>{fp}/{len(recs)}</td><td>{viol}</td><td>{wall}</td><td>{notes or '—'}</td></tr>")
+                        f"<td>{gates_cell}</td><td>{viol}</td><td>{wall}</td><td>{notes or '—'}</td></tr>")
         body.append("</table>")
     return head + "".join(body) + f"<p>{len(rows)} runs total.</p>"
