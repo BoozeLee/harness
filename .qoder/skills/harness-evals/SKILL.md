@@ -45,3 +45,21 @@ executes. Always drive providers through harness verbs.
   variant's diff-vs-base; raw agents that commit their work still get measured.
 - `wall` is the WHOLE pipeline per variant (init/start/run/verify for harnessed,
   single call for raw) — that asymmetry is the point of the measurement.
+
+## Earned by the first live matrix (2026-09-30)
+
+- A graded FAIL is only meaningful once the scoring env is proven: the first TS
+  rows were all `tsc`/`node --test` infra failures (@types/node missing, two
+  global-script test files colliding, `node --test <dir>` not scanning on Node 24).
+  Fix the env (0f5c1da), prune env-corrupted rows, re-run — never report those
+  numbers.
+- With a real implementation the TS grading path is: `npx tsc` then
+  `node --test test_graded/graded.test.ts` — hidden tests stay `require`-based so
+  `../dist/src/*.js` resolves at runtime; visible tests may be ESM imports;
+  `moduleDetection: force` prevents cross-file global redeclarations.
+- slugify failing BOTH variants with identical scope is a genuine agent miss —
+  exactly what graded_pass is for; report it, don't prune it.
+- Harnessed gates FAIL with review_note "session limit · resets <time>" is the
+  documented quota exception per run; it is not a pipeline defect.
+- Claude on /tmp eval workspaces prints a "workspace not trusted" warning into
+  stderr (harmless, lands in agent_tail).
