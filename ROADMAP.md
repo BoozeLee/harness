@@ -66,7 +66,9 @@ runs are authorized for this corpus only (small synthetic utils, no repo data).
       Proof: test_report_groups_and_escapes (incl. XSS escape assertion).
 - [ ] **Live matrix**: `harness eval run --agent all` (claude + codex, real
       provider calls, ~24 runs) + report committed as the README's proof
-      artifact. Blocked only by the reviewer session limit until 02:00; queued.
+      artifact. Blocked by the Claude session limit — reset announced as
+      "7am Europe/Brussels" on 2026-09-30; kill criterion: 3 attempts without
+      ≥10 rows ⇒ ship v1 on the dry-run honesty proof and waive live numbers.
 - [ ] README + TECHNICAL_PLAN §7 P7 Done note with the numbers.
 
 ## v1.0 ship (end of W3)
