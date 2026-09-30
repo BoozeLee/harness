@@ -1,0 +1,12 @@
+{
+  "name": "app",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "build": "tsc",
+    "test": "tsc && node --test tests/"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

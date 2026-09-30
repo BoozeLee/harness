@@ -1,0 +1,77 @@
+{
+  "note": "P7 corpus: identical small tasks run raw vs harnessed across agents x stacks. graded_* tests are copied in only AFTER the agent finishes, so it never sees the ground truth.",
+  "tasks": [
+    {
+      "id": "wordcount",
+      "stack": "python",
+      "module": "src/wordcount.py",
+      "goal": "Add src/wordcount.py with words(s) returning whitespace-split words of s and counts(s) returning {word: occurrences}.",
+      "accept": [
+        "words(' a  b ')==['a','b']",
+        "counts('a b a')=={'a':2,'b':1}",
+        "empty and whitespace-only input give [] / {}",
+        "non-str input raises TypeError"
+      ]
+    },
+    {
+      "id": "dedup",
+      "stack": "python",
+      "module": "src/dedup.py",
+      "goal": "Add src/dedup.py with dedup(items) returning a list with duplicates removed.",
+      "accept": [
+        "first-occurrence order is preserved",
+        "input list is not mutated",
+        "empty input returns []",
+        "unhashable items raise TypeError"
+      ]
+    },
+    {
+      "id": "movavg",
+      "stack": "python",
+      "module": "src/movavg.py",
+      "goal": "Add src/movavg.py with class MovingAverage(n) and .push(x) returning the mean of the last n values.",
+      "accept": [
+        "window never exceeds n values",
+        "push returns mean of current window",
+        "n < 1 raises ValueError at construction",
+        "value before the first push is None"
+      ]
+    },
+    {
+      "id": "queryparams",
+      "stack": "typescript",
+      "module": "src/params.ts",
+      "goal": "Add src/params.ts exporting parseQuery(q: string): Record<string, string> for URL query strings.",
+      "accept": [
+        "a leading '?' is ignored",
+        "percent-decoding is applied",
+        "duplicate keys keep the last value",
+        "'k=' yields an empty string and a bare 'k' yields empty string too"
+      ]
+    },
+    {
+      "id": "slugify",
+      "stack": "typescript",
+      "module": "src/slugify.ts",
+      "goal": "Add src/slugify.ts exporting slugify(s: string): string turning text into a lowercase-hyphen slug.",
+      "accept": [
+        "lowercase, spaces become single hyphens",
+        "non [a-z0-9-] characters are dropped",
+        "leading/trailing hyphens are stripped",
+        "empty or symbol-only input yields empty string"
+      ]
+    },
+    {
+      "id": "rangeexpand",
+      "stack": "typescript",
+      "module": "src/ranges.ts",
+      "goal": "Add src/ranges.ts exporting expandRanges(s: string): number[] parsing comma-separated int ranges like '1-3,7'.",
+      "accept": [
+        "'1-3,7' yields [1,2,3,7]",
+        "start greater than end throws Error",
+        "malformed segments throw Error",
+        "empty string yields []"
+      ]
+    }
+  ]
+}
