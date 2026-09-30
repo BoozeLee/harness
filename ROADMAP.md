@@ -64,12 +64,22 @@ runs are authorized for this corpus only (small synthetic utils, no repo data).
 - [x] Report: `harness eval report` → static CSP-sandboxed HTML from
       results.jsonl, grouped agent/stack × task × variant.
       Proof: test_report_groups_and_escapes (incl. XSS escape assertion).
-- [ ] **Live matrix**: `harness eval run --agent all` (claude + codex, real
-      provider calls, ~24 runs) + report committed as the README's proof
-      artifact. Blocked by the Claude session limit — reset announced as
-      "7am Europe/Brussels" on 2026-09-30; kill criterion: 3 attempts without
-      ≥10 rows ⇒ ship v1 on the dry-run honesty proof and waive live numbers.
-- [ ] README + TECHNICAL_PLAN §7 P7 Done note with the numbers.
+- [x] **Live matrix (codex half)**: 13 real provider runs 2026-09-30 — 11/13 graded
+      PASS (only slugify failed, both variants, a genuine agent miss), scope
+      violations raw=3 vs harnessed=4, every harnessed gates=FAIL attributable to the
+      independent-review session limit — recorded in each run's review_note, not
+      skipped. ≥10-row bar met on attempt 1. The live runs immediately earned their
+      keep: they exposed the TS grading-env defect (fixed 0f5c1da: @types/node +
+      moduleDetection:force + explicit test paths; the first 6 TS rows were pruned as
+      env-corrupted, not agent results).
+      Proof: evals/results.jsonl + `harness eval report` (artifacts gitignored by
+      design; numbers land in README — a tracked generated file would drift).
+- [ ] **Claude half**: same matrix through `--agent claude` after the session-limit
+      window (reset announced 07:00 Europe/Brussels 2026-09-30); if 3 attempts yield
+      <10 rows, ship v1 on the codex matrix + dry-run honesty proof and note the
+      single-agent caveat in the README block.
+- [x] README + TECHNICAL_PLAN §7 P7 Done note with the numbers (README evals block;
+      claude caveat stated there until its half runs).
 
 ## v1.0 ship (end of W3)
 

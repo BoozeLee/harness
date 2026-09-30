@@ -413,6 +413,10 @@ P6 — **Team policy sync** (1 wk): policy bundles as Git repo + `harness policy
 P7 — **Evals** (2 wk): N identical tasks run raw vs harnessed across ≥2 stacks;
   metrics: first-pass gate rate, scope violations, reviewer FAIL reasons, cost/task,
   wall-clock. Report generator ships as static HTML from the evidence schema.
+  **Status 2026-09-30: tooling + live codex matrix done** — 6 tasks x 2 stacks,
+  13 provider runs, 11/13 graded PASS, scope raw=3 vs harnessed=4, reviewer-quota
+  FAILs recorded per run (see README evals block). Claude half + post-reset
+  independent-review verdicts pending the provider session-limit window.
 
 Deferred (per README): hosted product / Review Agent SDK commercial terms.
 

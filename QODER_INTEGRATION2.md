@@ -109,21 +109,33 @@ post-v1 backlog.
 
 ## 5. Remaining plan with week numbers
 
-W1 (tonight, 2026-09-30) — DONE except final bullets:
+W1 (tonight, 2026-09-30) — DONE:
 - [x] DoD closeout merged to main + pushed + Actions proof
-- [ ] p7-evals verify PASS → merge → push → Actions (session in flight)
+- [x] p7-evals verify (unit/lint/typecheck/scope PASS, playwright 10/10 standalone)
+      → merged 24555b2 with reviewer-quota exception documented → pushed, Actions
+      run 36651570821 green
 
 W2 (by 2026-10-04):
-- [ ] Live eval matrix ≥10 rows (`harness eval run`, claude+codex × 6 tasks ×
-      2 variants) + report numbers into README "proof it works" section +
-      TECHNICAL_PLAN §7 P7 line. Kill criterion: if both providers' quotas
-      can't produce ≥10 rows in 3 attempts, ship v1 with dry-run honesty proof
-      + waive live numbers (record waiver explicitly).
+- [x] **Live eval matrix, codex half: 13 real runs 2026-09-30 ~03-05h** — 11/13
+      graded PASS (slugify failed both variants: genuine agent miss, the metric
+      working as designed), scope violations raw=3 vs harnessed=4, all harnessed
+      gates=FAIL attributable to independent-review session limit (recorded in
+      review_note, not skipped). ≥10-row kill-criterion bar met on attempt 1.
+      The runs exposed and forced the TS grading-env fix (0f5c1da: @types/node +
+      moduleDetection:force + explicit test paths; the first 6 TS rows were pruned
+      as env-corrupted — the live matrix earning its keep). Numbers are in the
+      README evals block + TECHNICAL_PLAN §7 status line.
+- [ ] Claude half after the 07:00 (Brussels) quota window — same command
+      (`harness eval run --agent claude`); known wrinkle: /tmp eval workspaces
+      also print a Claude "workspace not trusted" warning, harmless for runs but
+      its stderr ends up in agent_tail.
 
 W3 (by 2026-10-11):
-- [ ] v1.0 ship: bump both version sites → `harness --version` proof →
-      changelog from `cc27ff1..HEAD` → tag v1.0.0 + `gh release create`
-      (explicit user ask required for tag/release).
+- [x] v1.0.0 version bump in both sites (4a1ac1d), `harness --version` prints
+      "harness 1.0.0"
+- [ ] changelog from `cc27ff1..HEAD` + README quickstart re-verified via
+      scripts/smoke.sh from a clean clone
+- [ ] tag v1.0.0 + `gh release create` (explicit user ask required — not yet given)
 
 Post-v1 (no deadline): Qoder adapter in `harness init` (emit
 `.qoder/skills+commands+settings` exactly as §2, marker-idempotent — the

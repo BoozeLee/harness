@@ -17,6 +17,7 @@ harness task run invites --agent codex  # headless agent inside the worktree (cl
 harness verify invites             # runs every gate + scope check + independent review -> evidence HTML
 harness pr create invites          # refuses unless evidence verdict is PASS
 harness serve --port 8766          # local API + runner + dashboard backend (uv sync --extra server)
+harness eval run --agent codex     # P7: raw-vs-harnessed corpus runs (list|run|report; --dry = offline)
 ```
 
 - **Guard hook**: `harness guard` is registered as a Claude Code PreToolUse hook; it blocks writes to protected paths, reads of secrets, and forbidden commands (exit 2) and logs to `.ai-engineering/audit.log`.
@@ -26,4 +27,13 @@ harness serve --port 8766          # local API + runner + dashboard backend (uv 
   `.ai-engineering/serve.token`); run `npm run dev` in `web/` after `cd web && npm install`.
   Verify/agent runs stream live over SSE (Runs view); `--max-parallel` caps concurrent runs.
   The CLI is fully usable without it.
-- Not yet built (per the report's roadmap): evals comparing raw vs. harnessed runs. Review Agent SDK commercial terms before shipping a hosted product.
+- **Evals (P7)**: 6 small tasks (3 Python, 3 TypeScript) each run twice — raw agent
+  call vs. the full `init → task start → run → verify` pipeline, same agent binary.
+  Ground truth is a hidden acceptance suite the agent never sees. Live matrix
+  (codex, 2026-09-30, 13 runs): **11/13 graded PASS** — only slugify failed, both
+  variants, on the collapse-runs edge case (a real agent miss, not an env flake); scope violations raw=3 vs harnessed=4 (contract amended after the
+  runner flagged them); first-pass gates read FAIL on every harnessed run because
+  independent-review hits the provider session limit — recorded, not skipped. The
+  claude half waits on the 07:00 (Brussels) quota window; regenerate with
+  `harness eval run --agent all && harness eval report`.
+- Not yet built (per the report's roadmap): hosted product. Review Agent SDK commercial terms before shipping one.
