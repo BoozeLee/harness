@@ -16,6 +16,10 @@
       "cmd": "cd web && npm ci --no-audit --no-fund && npx playwright test e2e/dashboard.spec.ts",
       "min_risk": "medium",
       "type": "e2e"
+    },
+    "elohim": {
+      "cmd": "python3 vendor/elohim/scripts/elohim_run.py",
+      "min_risk": "medium"
     }
   },
   "review": true,

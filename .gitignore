@@ -25,3 +25,6 @@ playwright-report/
 # eval run artifacts: regenerate with 'harness eval run'
 evals/results.jsonl
 evals/report.html
+
+vendor/elohim/out/
+vendor/elohim/instrument/out/
