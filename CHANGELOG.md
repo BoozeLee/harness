@@ -1,5 +1,36 @@
 # Changelog
 
+## v1.1.0 — 2026-09-30
+
+Post-v1 integration wave, both features shipped through harness's own
+contract-gated lifecycle with role-assigned agent prompts (Underboss plans,
+Soldier executes, `harness verify` + CI adjudicate):
+
+- **ELOHIM gate** (`6062579`, merge `d7ba636`): the ELOHIM measurement
+  instrument (vendored under `vendor/elohim/`, byte-identical to the skill
+  tree, instrument sha256 matches the ledger pin) becomes a verification gate
+  whose contract is "read the exit code, not the prose": pin checksum, 16
+  re-measured ledger facts, six numeric traps, residuals on every claim.
+  Runs locally and in GitHub Actions identically (`gate elohim` green on
+  runners since `d7ba636`). Vendored code is excluded from ruff. Caught and
+  fixed during review: `harness ci` regeneration had silently dropped the
+  CI playwright-setup step — restored, workflow diff confirmed minimal.
+- **Declarative agent registry** (`68298e4`, merge `6e7ae23`): `harness/agents.py`
+  now holds frozen `AgentSpec` records (binary, headless argv builder,
+  enforcement tier, description) in an immutable `AGENT_SPECS` mapping,
+  modeled on LINCE's agent-registration contract. `AGENTS`, `build_argv`,
+  the unknown-agent error and the server `TOOLS` probe all derive from the
+  registry; claude/codex argv unchanged byte for byte. New validation verb
+  `harness agents [--json]` reports presence, version and enforcement tier
+  per registered agent — the "adding an agent" procedure is documented in
+  TECHNICAL_PLAN §"Adding an agent".
+- **Release tooling**: `scripts/install.sh` — one-command stranger install from
+  the GitHub release wheel (`uv tool install`, venv fallback); wheel + sdist
+  attached to releases; `scripts/smoke.sh` green at every release.
+- Tests: suite 6 → 9 in `tests/test_agents.py` (registry-pinned argv,
+  PATH-shim presence probes, offline). First task ever verified through the
+  ELOHIM gate itself: `lince-registry`.
+
 ## v1.0.0 — 2026-09-30
 
 First stable release. Everything from the baseline (`cc27ff1`) to here:
