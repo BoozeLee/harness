@@ -35,3 +35,14 @@ def test_smoke_script_matches_readme_block() -> None:
     for verb in ("scan", "init", "ci", "task start", "task update", "task list", "verify", "serve"):
         assert f"harness {verb}" in readme or f"`{verb}`" in readme or verb in readme, verb
         assert f'"$h" {verb}' in smoke, verb
+
+
+def test_version_string_follows_pyproject():
+    """harness --version must not drift from the package metadata (v1.1.0 caught it drifting)."""
+    import tomllib
+
+    from harness import __version__
+    root = Path(__file__).resolve().parent.parent
+    with open(root / "pyproject.toml", "rb") as f:
+        meta = tomllib.load(f)
+    assert __version__ == meta["project"]["version"]
