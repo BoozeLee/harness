@@ -38,3 +38,5 @@ jobs:
         run: "uv run mypy harness/"
       - name: gate playwright
         run: "cd web && npm ci --no-audit --no-fund && npx playwright test e2e/dashboard.spec.ts"
+      - name: gate elohim
+        run: "python3 vendor/elohim/scripts/elohim_run.py"

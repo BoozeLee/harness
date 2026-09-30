@@ -30,7 +30,7 @@ packages = ["harness"]
 
 [tool.ruff]
 line-length = 110
-exclude = ["web"]
+exclude = ["web", "vendor"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
