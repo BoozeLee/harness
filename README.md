@@ -37,3 +37,25 @@ harness eval run --agent codex     # P7: raw-vs-harnessed corpus runs (list|run|
   claude half waits on the 07:00 (Brussels) quota window; regenerate with
   `harness eval run --agent all && harness eval report`.
 - Not yet built (per the report's roadmap): hosted product. Review Agent SDK commercial terms before shipping one.
+
+## License and network source (AGPL §13)
+
+`harness-agent` is **AGPL-3.0-only** — see [`LICENSE`](LICENSE).
+
+Exactly one command opens a socket: `harness serve`. It runs FastAPI on
+`127.0.0.1:8766` by default (`--host` / `--port`) and authenticates
+state-changing requests with the bearer token in `.ai-engineering/serve.token`.
+Every other command in the table above is a local CLI: it reads and writes
+files and never listens. `harness --version` prints the running version.
+
+If you rebind `--host` away from loopback, or forward the port so someone else
+can reach the API or the dashboard, remote users are interacting with your
+build over a network and AGPL §13 applies. You must then offer those users the
+Corresponding Source of *your* version from a network server at no charge,
+through some standard or customary means of copying software.
+
+The Corresponding Source for this work is public at no charge here:
+
+    https://github.com/BoozeLee/harness
+
+Check out the commit you built from on `main` to reproduce it exactly.
