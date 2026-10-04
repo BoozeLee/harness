@@ -38,7 +38,7 @@ The hook was first verified with real PreToolUse stdin events against
 - `Bash "git status --short"` → exit 0 ✓
 - `Write prod/.env` → **exit 2** ✓
 - `qoder hooks migrate` confirmed the hand-written config was already canonical.
-- **Gap found:** `Grep path=/home/kilisan/.ssh` → exit 0. `policy.evaluate()`
+- **Gap found:** `Grep path=~/.ssh` → exit 0. `policy.evaluate()`
   matches patterns repo-relative, so outside-repo absolutes slip past
   `never_read` — the hook protected the wrong perimeter anyway.
 
@@ -68,7 +68,7 @@ verification — which is what makes them effortless.
 
 ## How to restart in a new conversation
 
-1. `cd /home/kilisan/harness && qoder` — accept the folder-trust prompt (project
+1. `cd ~/harness && qoder` — accept the folder-trust prompt (project
    `.qoder/` config only applies to trusted folders; it then runs the session in
    `bypass_permissions` — no prompts, no guard hook).
 2. On open: `AGENTS.md` auto-loads; the `harness` skill is available for any

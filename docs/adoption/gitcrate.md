@@ -1,6 +1,6 @@
 # Adoption log: harness on a second real repo (gitcrate)
 
-Run 2026-09-30, from a fresh clone of `/home/kilisan/gitcrate` (a messy personal
+Run 2026-09-30, from a fresh clone of `~/gitcrate` (a messy personal
 Python/utility repo, 1822 tracked files, unittest-style tests, no venv).
 Harness 1.0.0 installed into a throwaway venv (`uv venv` + `uv pip install`) —
 identical to a stranger's first step in the README. This is the proof the

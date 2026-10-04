@@ -2,7 +2,7 @@
 description: Refresh the .Codex/status.md session handoff from live git/task/evidence state before ending a session.
 ---
 
-Update `/home/kilisan/harness/.Codex/status.md` (untracked — never commit it)
+Update `~/harness/.Codex/status.md` (untracked — never commit it)
 from VERIFIED state only:
 
 1. `git log --oneline -6` + `git status --short` + `gh run list --limit 2` —
