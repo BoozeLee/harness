@@ -2,7 +2,7 @@
 
 Written 2026-09-30 02:15 Europe/Brussels. Supersedes QODER_INTEGRATION.md (v1,
 still valid for posture/history). Restart a fresh Qoder conversation on
-`/home/kilisan/harness` with this file as the entry point: state, new tools,
+`~/harness` with this file as the entry point: state, new tools,
 the end-state environment spec, and the remaining plan with week numbers.
 
 ## 1. Where the project stands (verified, not remembered)

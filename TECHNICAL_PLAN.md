@@ -1,7 +1,7 @@
 # Harness — Start-to-Finish Technical Plan (frontend → backend, Omarchy/Arch)
 
 Status: v1 plan. All "verified today" facts below were executed on this machine
-(Omarchy 4.0.4, Hyprland 0.56.2) on 2026-09-28 against `/home/kilisan/harness/harness.py`.
+(Omarchy 4.0.4, Hyprland 0.56.2) on 2026-09-28 against `harness/harness.py`.
 
 ---
 

@@ -5,7 +5,7 @@ description: Ship Harness v1.0 — version bump, changelog from commit history, 
 
 # Harness release (v1.0 ship)
 
-Repo: /home/kilisan/harness, remote origin = BoozeLee/harness (private, gh authed).
+Repo: ~/harness, remote origin = BoozeLee/harness (private, gh authed).
 `main` must stay releasable; Actions green is the acceptance signal.
 
 ## Steps (only on explicit user ask for tag/release — merge+push per standing directive)

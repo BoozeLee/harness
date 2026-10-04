@@ -1,8 +1,10 @@
 """Team policy bundle: the shared files of .ai-engineering/ versioned in a Git repo.
 
 Bundle = policy.json + verification.json at .ai-engineering/ in the bundle repo.
-Everything else stays local on purpose: project.json carries machine-specific
-paths, and tasks/evidence/audit.log are per-repo history.
+Everything else stays local on purpose: tasks/evidence/audit.log are per-repo
+history. project.json is tracked so the bundle is reproducible, but its `root`
+is written repo-relative -- harness/scan.py rewrites it to an absolute path for
+whatever tree it scans, so a checked-out copy never pins one machine's layout.
 """
 
 import shutil

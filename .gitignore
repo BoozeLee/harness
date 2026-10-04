@@ -22,6 +22,9 @@ test-results/
 playwright-report/
 .ai-engineering/evidence/
 
+# audit log is per-machine history: it records absolute paths
+.ai-engineering/audit.log
+
 # eval run artifacts: regenerate with 'harness eval run'
 evals/results.jsonl
 evals/report.html

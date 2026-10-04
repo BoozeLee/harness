@@ -22,7 +22,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"/home/kilisan/.local/bin/harness\" guard"
+            "command": "\"$HOME/.local/bin/harness\" guard"
           }
         ]
       }
