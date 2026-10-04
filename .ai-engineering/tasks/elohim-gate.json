@@ -6,7 +6,7 @@
   ],
   "risk": "medium",
   "branch": "harness/elohim-gate",
-  "worktree": "/home/kilisan/.harness-worktrees/harness-elohim-gate",
+  "worktree": "~/.harness-worktrees/harness-elohim-gate",
   "base": "8fb5fd22e3d8c9f08594f63388dd70d9cc873681",
   "allowed": [
     "vendor/**",

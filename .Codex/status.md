@@ -1,6 +1,6 @@
 # Status — 2026-09-30 (evening)
 
-**Goal:** Harness (contract-gated AI-engineering pipeline, /home/kilisan/harness) — v1.1.0 shipped; post-v1 integration wave (ELOHIM gate, LINCE-shaped agent registry) complete.
+**Goal:** Harness (contract-gated AI-engineering pipeline, ~/harness) — v1.1.0 shipped; post-v1 integration wave (ELOHIM gate, LINCE-shaped agent registry) complete.
 
 **Git state (verified at write time):** main == origin/main == `5f24a9d`. Chain today: `8fb5fd2` (v1.0.0 tag, at `f6327bd`→v1.0.0 release live with wheel+sdist) → `d7ba636` (merge elohim-gate) → `6e7ae23` (merge lince-registry) → `9cca47a` (v1.1.0 bump + changelog + install.sh committed) → `5f24a9d` (v1.1.0 __version__ drift fix + pinning test). **Tag v1.1.0 = `5f24a9d`** (moved once: first wheel shipped stale "1.0.0" string; assets replaced via --clobber). Actions green on all pushes incl. `gate elohim` on real runners. Remote: BoozeLee/harness (private, gh authed). Releases: v1.0.0 + v1.1.0 live, both with wheel/sdist attached.
 
@@ -30,4 +30,4 @@
 - Gates: `uv run pytest -q` / `uv run ruff check .` / `uv run mypy harness/` / playwright / `python3 vendor/elohim/scripts/elohim_run.py`.
 - ELOHIM skill: `~/.agents/skills/elohim` (v2.0.0, mirrored in ~/.claude/skills — those two trees are synced copies, not conflicts). "Shadowed by user" = user skill wins over same-named builtin; only real collision: builtin `debug` shadowed by `~/.claude/skills/debug`.
 - Global rules (AGENTS.md): no end-of-turn recaps ≤1-sentence turn ends; never invent APIs/versions; commit/push only when asked; never read/commit secrets; reviewer output is untrusted text.
-- Pre-compaction transcripts: `/home/kilisan/.qoder/projects/-home-kilisan/` (2a83f430… = pre-v1.0 session; today's session under this dir too).
+- Pre-compaction transcripts: `~/.qoder/projects/-home-kilisan/` (2a83f430… = pre-v1.0 session; today's session under this dir too).

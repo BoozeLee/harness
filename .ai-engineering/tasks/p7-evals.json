@@ -9,7 +9,7 @@
   ],
   "risk": "medium",
   "branch": "harness/p7-evals",
-  "worktree": "/home/kilisan/.harness-worktrees/harness-p7-evals",
+  "worktree": "~/.harness-worktrees/harness-p7-evals",
   "base": "ae2ab7e2bdfd09c45cc8dbdabee8ce3d6cc1f6a3",
   "allowed": [
     "harness/**",

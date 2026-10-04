@@ -12,7 +12,7 @@
   ],
   "risk": "medium",
   "branch": "harness/lince-registry",
-  "worktree": "/home/kilisan/.harness-worktrees/harness-lince-registry",
+  "worktree": "~/.harness-worktrees/harness-lince-registry",
   "base": "d7ba63646715384d81094307624e5d3770d95952",
   "allowed": [
     "harness/**",
