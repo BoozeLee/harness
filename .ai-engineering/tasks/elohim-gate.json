@@ -1,0 +1,46 @@
+{
+  "name": "elohim-gate",
+  "goal": "You are the Integration Soldier for this repo: the plan below is already decided by the Underboss \u2014 execute it exactly, do not redesign it, do not expand scope. Mission: make ELOHIM (a stdlib-only Python measurement gate at ~/.agents/skills/elohim whose contract is 'read the exit code, not the prose') a Harness verification gate that passes identically on this machine and in GitHub Actions. CI-parity requires a VENDORED copy of the skill inside this repo, because the runner resolves every file relative to its own directory and GitHub runners have no ~/.agents.",
+  "accept": [
+    "Authorized follow-up (verifier): ruff must not lint vendored third-party code \u2014 [tool.ruff] exclude gains \"vendor\". This edit was made by the maintainer after review, not by the agent."
+  ],
+  "risk": "medium",
+  "branch": "harness/elohim-gate",
+  "worktree": "/home/kilisan/.harness-worktrees/harness-elohim-gate",
+  "base": "8fb5fd22e3d8c9f08594f63388dd70d9cc873681",
+  "allowed": [
+    "vendor/**",
+    ".gitignore",
+    ".ai-engineering/verification.json",
+    ".github/workflows/harness.yml",
+    "pyproject.toml"
+  ],
+  "protected": [
+    ".env*",
+    "*.pem",
+    "id_rsa*",
+    "secrets/**"
+  ],
+  "gates": {
+    "unit": {
+      "cmd": "uv run pytest -q",
+      "min_risk": "low"
+    },
+    "lint": {
+      "cmd": "uv run ruff check .",
+      "min_risk": "low"
+    },
+    "typecheck": {
+      "cmd": "uv run mypy harness/",
+      "min_risk": "medium"
+    },
+    "playwright": {
+      "cmd": "cd web && npm ci --no-audit --no-fund && npx playwright test e2e/dashboard.spec.ts",
+      "min_risk": "medium",
+      "type": "e2e"
+    }
+  },
+  "review": true,
+  "created": 1790743426,
+  "schema_version": 1
+}

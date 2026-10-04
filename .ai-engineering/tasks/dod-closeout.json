@@ -1,0 +1,45 @@
+{
+  "name": "dod-closeout",
+  "goal": "Close every \u00a79 v1 DoD gap with a linked proof: guard-blocks-transcript pytest (incl. the hit() outside-repo escape found during Qoder verification), uv tool install smoke, and the \u00a73/README fresh-machine command block run verbatim on a clean clone",
+  "accept": [
+    "new guard transcript test: harness guard stdin event for a secret read exits 2 with an audit.log line, and an in-scope read passes untouched",
+    "install smoke: clean-venv uv tool install . then harness --help and harness scan on a scratch repo succeed; scripted as a test or scripts/smoke.sh",
+    "fresh-machine checklist: every README command block line runs verbatim from a clean clone in /tmp; gaps fixed in docs or code, or a no-changes-needed note in TECHNICAL_PLAN 3",
+    "full sweep green: python3 -m pytest -q, ruff check ., mypy .; scan --fail-under 70 still passes; changes stay in harness/, tests/, scripts/, README.md, TECHNICAL_PLAN.md"
+  ],
+  "risk": "medium",
+  "branch": "harness/dod-closeout",
+  "worktree": "/home/kilisan/.harness-worktrees/harness-dod-closeout",
+  "base": "ae2ab7e2bdfd09c45cc8dbdabee8ce3d6cc1f6a3",
+  "allowed": [
+    "**"
+  ],
+  "protected": [
+    ".env*",
+    "*.pem",
+    "id_rsa*",
+    "secrets/**"
+  ],
+  "gates": {
+    "unit": {
+      "cmd": "uv run pytest -q",
+      "min_risk": "low"
+    },
+    "lint": {
+      "cmd": "uv run ruff check .",
+      "min_risk": "low"
+    },
+    "typecheck": {
+      "cmd": "uv run mypy harness/",
+      "min_risk": "medium"
+    },
+    "playwright": {
+      "cmd": "cd web && npm ci --no-audit --no-fund && npx playwright test e2e/dashboard.spec.ts",
+      "min_risk": "medium",
+      "type": "e2e"
+    }
+  },
+  "review": true,
+  "created": 1790717310,
+  "schema_version": 1
+}

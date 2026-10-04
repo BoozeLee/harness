@@ -1,0 +1,49 @@
+{
+  "name": "p7-evals",
+  "goal": "P7 evals: harness eval subcommand group (list/run/report) with an offline corpus (>=6 tasks x 2 agent stacks), metric collection (first-pass gate rate, scope violations, reviewer FAIL reasons, wall-clock cost) and a static HTML report from the evidence schema; corpus fixtures + plumbing fully offline-tested with a fake agent",
+  "accept": [
+    "harness eval list shows the corpus matrix",
+    "harness eval run --dry with a fake agent produces result rows with all metrics",
+    "harness eval report renders static HTML with per-stack raw-vs-harnessed comparison",
+    "new tests offline-green; full suite green; ruff+mypy clean; playwright gate green"
+  ],
+  "risk": "medium",
+  "branch": "harness/p7-evals",
+  "worktree": "/home/kilisan/.harness-worktrees/harness-p7-evals",
+  "base": "ae2ab7e2bdfd09c45cc8dbdabee8ce3d6cc1f6a3",
+  "allowed": [
+    "harness/**",
+    "tests/**",
+    "evals/**",
+    "ROADMAP.md",
+    ".gitignore"
+  ],
+  "protected": [
+    ".env*",
+    "*.pem",
+    "id_rsa*",
+    "secrets/**"
+  ],
+  "gates": {
+    "unit": {
+      "cmd": "uv run pytest -q",
+      "min_risk": "low"
+    },
+    "lint": {
+      "cmd": "uv run ruff check .",
+      "min_risk": "low"
+    },
+    "typecheck": {
+      "cmd": "uv run mypy harness/",
+      "min_risk": "medium"
+    },
+    "playwright": {
+      "cmd": "cd web && npm ci --no-audit --no-fund && npx playwright test e2e/dashboard.spec.ts",
+      "min_risk": "medium",
+      "type": "e2e"
+    }
+  },
+  "review": true,
+  "created": 1790720527,
+  "schema_version": 1
+}

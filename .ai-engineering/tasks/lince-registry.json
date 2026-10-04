@@ -1,0 +1,54 @@
+{
+  "name": "lince-registry",
+  "goal": "You are the Platform Soldier for this repo: the architecture below is already decided by the Underboss \u2014 execute it exactly, no redesign, no scope drift. Mission: replace the hardcoded agent if/else in harness/agents.py with a declarative registry modeled on the LINCE agent-registration contract (lince-add-supported-agent): each agent declares its own requirements \u2014 binary, headless argv shape, enforcement tier \u2014 so adding a new coding agent becomes one registry entry plus a validation step, never an edit of control flow.",
+  "accept": [
+    "harness/agents.py: introduce AGENT_SPECS, an immutable mapping name -> spec with fields: binary (executable to probe), argv builder (prompt -> argv list), enforcement tier (claude='guard-hook', codex='sandbox+verify'), human description. claude must yield exactly ['claude','-p',prompt,'--permission-mode','acceptEdits']; codex exactly ['codex','exec','--sandbox','workspace-write',prompt].",
+    "AGENTS, build_argv and the unknown-agent error derive from AGENT_SPECS; error message lists registry keys. Existing argv behavior byte-identical.",
+    "harness/server.py and harness/runner.py (if it hardcodes agent names): agent validation and the TOOLS probe read agent binaries from the registry instead of literals; non-agent TOOLS entries stay as they are.",
+    "New CLI verb 'harness agents': table-ish output per agent \u2014 name, binary present (yes/no), version when present, enforcement tier; plus --json for machine-readable. stdlib only, offline, exit 0 always unless flags bogus.",
+    "tests/test_agents.py: existing 6 tests stay green; add registry tests \u2014 argv pinned per spec THROUGH the registry (not hardcoded names), unknown agent lists keys, 'harness agents --json' against fake PATH shims with one binary present and one absent asserts the booleans; fully offline.",
+    "TECHNICAL_PLAN.md: add 'Adding an agent' subsection: the fields a new agent must declare and that validation is 'harness agents' \u2014 mirroring lince-add-supported-agent's requirement contract. Honest note: enforcement asymmetry per tier stays (hook vs sandbox+verify).",
+    "Type-clean: uv run mypy harness/ must pass including the new dataclass/mapping. No new dependencies."
+  ],
+  "risk": "medium",
+  "branch": "harness/lince-registry",
+  "worktree": "/home/kilisan/.harness-worktrees/harness-lince-registry",
+  "base": "d7ba63646715384d81094307624e5d3770d95952",
+  "allowed": [
+    "harness/**",
+    "tests/test_agents.py",
+    "TECHNICAL_PLAN.md"
+  ],
+  "protected": [
+    ".env*",
+    "*.pem",
+    "id_rsa*",
+    "secrets/**"
+  ],
+  "gates": {
+    "unit": {
+      "cmd": "uv run pytest -q",
+      "min_risk": "low"
+    },
+    "lint": {
+      "cmd": "uv run ruff check .",
+      "min_risk": "low"
+    },
+    "typecheck": {
+      "cmd": "uv run mypy harness/",
+      "min_risk": "medium"
+    },
+    "playwright": {
+      "cmd": "cd web && npm ci --no-audit --no-fund && npx playwright test e2e/dashboard.spec.ts",
+      "min_risk": "medium",
+      "type": "e2e"
+    },
+    "elohim": {
+      "cmd": "python3 vendor/elohim/scripts/elohim_run.py",
+      "min_risk": "medium"
+    }
+  },
+  "review": true,
+  "created": 1790747557,
+  "schema_version": 1
+}
