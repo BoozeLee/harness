@@ -18,3 +18,4 @@ run:
 
 clean:
 	rm -rf __pycache__ .mypy_cache .ruff_cache .pytest_cache dist build *.egg-info
+	find . -type d -name __pycache__ -exec rm -rf {} +

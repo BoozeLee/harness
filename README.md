@@ -5,7 +5,23 @@
 
 # Harness
 
-Local-first control plane that turns a normal Git repo into a governed, verifiable agentic dev environment. Stdlib-only Python core, packaged: install with `uv tool install .` (or `uv tool install --editable .` in this repo) and use `harness --help`.
+[![CI](https://github.com/BoozeLee/harness/actions/workflows/harness.yml/badge.svg)](https://github.com/BoozeLee/harness/actions/workflows/harness.yml)
+[![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/python-≥3.10-3776AB.svg)](https://www.python.org/)
+
+Local-first control plane that turns a normal Git repo into a governed, verifiable agentic dev environment.
+
+## Quickstart
+
+```bash
+git clone https://github.com/BoozeLee/harness && cd harness
+uv tool install .                              # or: uv tool install --editable . for dev
+harness --help                                 # see all commands
+harness scan                                   # agent-readiness score, detected gates, protected paths
+uv run pytest                                  # run tests
+```
+
+## CLI Reference
 
 ```
 harness scan                       # agent-readiness score, detected gates, protected paths
@@ -25,10 +41,12 @@ harness serve --port 8766          # local API + runner + dashboard backend (uv 
 harness eval run --agent codex     # P7: raw-vs-harnessed corpus runs (list|run|report; --dry = offline)
 ```
 
+## Features
+
 - **Guard hook**: `harness guard` is registered as a Claude Code PreToolUse hook; it blocks writes to protected paths, reads of secrets, and forbidden commands (exit 2) and logs to `.ai-engineering/audit.log`.
 - **Completion contract**: a task is done only when all gates for its risk level pass, changes stay in scope, and the reviewer returns `VERDICT: PASS` (skipped review counts as not passed).
 - **Everything is plain JSON/Markdown** in Git: inspect with `git diff`, no lock-in.
-- **`web/`** dashboard talks to `harness serve` (FastAPI on 127.0.0.1:8766, bearer token in
+- **`web/`** dashboard talks to `harness serve` (FastAPI on `127.0.0.1:8766`, bearer token in
   `.ai-engineering/serve.token`); run `npm run dev` in `web/` after `cd web && npm install`.
   Verify/agent runs stream live over SSE (Runs view); `--max-parallel` caps concurrent runs.
   The CLI is fully usable without it.
@@ -42,6 +60,15 @@ harness eval run --agent codex     # P7: raw-vs-harnessed corpus runs (list|run|
   claude half waits on the 07:00 (Brussels) quota window; regenerate with
   `harness eval run --agent all && harness eval report`.
 - Not yet built (per the report's roadmap): hosted product. Review Agent SDK commercial terms before shipping one.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    scan[scan] --> init[init] --> task[task] --> verify[verify] --> pr[pr] --> serve[serve]
+```
+
+The pipeline flows left to right: `scan` assesses repo readiness, `init` scaffolds policy and config, `task` creates scoped work contracts, `verify` runs gates and reviews, `pr` produces evidence-gated pull requests, and `serve` exposes a local API + dashboard.
 
 ## License and network source (AGPL §13)
 
