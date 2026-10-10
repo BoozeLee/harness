@@ -1,3 +1,8 @@
+[![CI](https://github.com/Quattro-Commas/harness/actions/workflows/harness.yml/badge.svg)](https://github.com/Quattro-Commas/harness/actions/workflows/harness.yml)
+[![PyPI](https://img.shields.io/pypi/v/harness-agent2)](https://pypi.org/project/harness-agent2/)
+[![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+
 # Harness
 
 Local-first control plane that turns a normal Git repo into a governed, verifiable agentic dev environment. Stdlib-only Python core, packaged: install with `uv tool install .` (or `uv tool install --editable .` in this repo) and use `harness --help`.
