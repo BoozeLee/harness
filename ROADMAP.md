@@ -23,7 +23,7 @@ Legend: `[x]` done & verified · `[ ]` open · `→` blocked on a user decision
 ## v1 DoD closeout (TECHNICAL_PLAN §9) — W1, all offline (~6-8h)
 
 - [x] **Push integration commit** — `a2bc2e4` pushed; Actions run 36633480413
-      success: https://github.com/BoozeLee/harness/actions/runs/36633480413
+      success: https://github.com/Quattro-Commas/harness/actions/runs/36633480413
 - [x] **Guard transcript test** — pytest reproducing the §1 story end to end:
       a fake agent session whose `Read .env` / forbidden `Bash` events go
       through `cmd_guard` stdin and get exit-2 + audit.log lines. §8 risk row

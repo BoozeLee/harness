@@ -61,6 +61,6 @@ through some standard or customary means of copying software.
 
 The Corresponding Source for this work is public at no charge here:
 
-    https://github.com/BoozeLee/harness
+    https://github.com/Quattro-Commas/harness
 
 Check out the commit you built from on `main` to reproduce it exactly.
