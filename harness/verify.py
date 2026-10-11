@@ -4,6 +4,7 @@ import os
 import shutil
 import time
 
+from harness.chain import evidence_hash, prev_evidence_hash
 from harness.contract import load_task
 from harness.evidence import archive_shots
 from harness.evidence import write as write_evidence
@@ -48,6 +49,8 @@ def cmd_verify(a) -> int:
           "stat": stat, "verdict": "PASS" if ok else "FAIL", "time": int(time.time())}
     if shots:
         ev["shots"] = shots
+    ev["prev_hash"] = prev_evidence_hash(r)
+    ev["hash"] = evidence_hash(ev)
     hp = write_evidence(r, ev)[1]
     for x in res:
         print(f"{'PASS' if x['ok'] else 'FAIL':<5} {x['name']:<20} {x['secs']}s")

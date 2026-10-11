@@ -253,6 +253,9 @@ class Runner:
                           "stat": stat, "verdict": "PASS" if passed else "FAIL", "time": int(_now())}
                     if shots:
                         ev["shots"] = shots
+                    from harness.chain import evidence_hash, prev_evidence_hash
+                    ev["prev_hash"] = prev_evidence_hash(self.root)
+                    ev["hash"] = evidence_hash(ev)
                     await asyncio.to_thread(write_evidence, self.root, ev)
                     status = "succeeded" if passed else "failed"
                     await self._set(run_id, status=status, ended=_now(), exit_code=0 if passed else 1)
