@@ -15,7 +15,8 @@ jobs:
     runs-on: ubuntu-latest
     environment: pypi
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      # Third-party actions are blocked by org policy; uv publish does OIDC trusted publishing itself.
+      - run: pip install uv
       - run: uv build
-      - uses: pypa/gh-action-pypi-publish@release/v1
+      - run: uv publish --trusted-publishing always

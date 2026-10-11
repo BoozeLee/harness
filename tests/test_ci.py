@@ -1,10 +1,13 @@
 """CI generator: the emitted workflow must run exactly this repo's own gates."""
 
 import json
+import re
 from pathlib import Path
 
 import yaml
 from helpers import gcmd, harness
+
+from harness.ci import SETUP_NODE
 
 WF = Path(".github") / "workflows" / "harness.yml"
 
@@ -80,7 +83,7 @@ def test_ci_adds_node_setup_and_lockfile_install(tmp_path: Path):
     assert harness(["init", "--force"], r).returncode == 0
     assert harness(["ci"], r).returncode == 0
     y = generated(r)
-    assert "actions/setup-node@v4" in y
+    assert SETUP_NODE in y
     assert 'run: "npm ci --no-fund --no-audit"' in y
     assert 'run: "npm run test"' in y
     assert "- name: gate unit" in y
@@ -140,7 +143,7 @@ def test_ci_detects_node_app_in_a_subdir(tmp_path: Path):
     (r / "web" / "node_modules" / "pkg" / "package.json").write_text("{}\n")
     assert harness(["ci"], r).returncode == 0
     y = generated(r)
-    assert "actions/setup-node@v4" in y
+    assert SETUP_NODE in y
     assert 'run: "cd web && npm ci --no-fund --no-audit"' in y
     assert "node_modules" not in y
 
@@ -178,3 +181,13 @@ def test_ci_requires_init(tmp_path: Path):
     c = harness(["ci"], tmp_path)
     assert c.returncode == 1
     assert "harness init" in c.stdout + c.stderr
+
+
+def test_ci_pins_every_action_to_a_full_commit_sha(tmp_path: Path):
+    """Orgs that require SHA pinning reject a tag ref at startup, before any job runs."""
+    r = plain_repo(tmp_path, "pinned")
+    (r / "package.json").write_text(json.dumps({"scripts": {"test": "vitest run"}}))
+    assert harness(["init", "--force"], r).returncode == 0
+    assert harness(["ci"], r).returncode == 0
+    refs = re.findall(r"uses: (\S+)", generated(r))
+    assert refs and all(re.fullmatch(r"actions/[\w-]+@[0-9a-f]{40}", u) for u in refs), refs
