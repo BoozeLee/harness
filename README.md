@@ -10,6 +10,10 @@ agentic dev environment. Agents that run through Harness complete tasks with
 measurably higher accuracy because every write is scoped, every claim is gated,
 and nothing ships until an independent reviewer passes it.
 
+## Demo
+
+![Harness scan](docs/demo.svg)
+
 ## The problem
 
 AI coding agents produce plausible-looking code that passes CI but violates
