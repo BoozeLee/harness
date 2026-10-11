@@ -17,7 +17,7 @@ LOCKFILES = {"package-lock.json": "npm ci --no-fund --no-audit", "pnpm-lock.yaml
              "yarn.lock": "yarn install --frozen-lockfile"}
 # Orgs can require GitHub-owned actions pinned to a full commit SHA; a tag ref makes
 # the workflow fail at startup with zero jobs, so the generator only emits pins.
-CHECKOUT = "actions/checkout@v4"
+CHECKOUT = "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1"
 SETUP_PYTHON = "actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7"
 SETUP_NODE = "actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7.1.0"
 SKIP_DIRS = {"node_modules", ".venv", "venv", "dist", "build", "test-results"}
