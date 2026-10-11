@@ -94,6 +94,7 @@ class TaskCreate(BaseModel):
     accept: list[str] = []
     allow: list[str] = []
     risk: str = "medium"
+    embed_repro: bool = False
 
     @field_validator("name")
     @classmethod
@@ -203,25 +204,28 @@ def create_app(repo: Path, token: str, max_parallel: int = 2) -> FastAPI:
     @app.post("/api/tasks", status_code=201)
     def start(body: TaskCreate):
         args = argparse.Namespace(name=body.name, goal=body.goal, accept=body.accept or None,
-                                  allow=body.allow or None, risk=body.risk, repo=str(repo))
+                                  allow=body.allow or None, risk=body.risk,
+                                  embed_repro=body.embed_repro, repo=str(repo))
         rc, out = _run_core(cmd_start, args)
         if rc:
             raise HTTPException(400, out.strip() or "task start failed")
         return {"output": out, "contract": _jload(repo / AE / "tasks" / f"{body.name}.json")}
 
     @app.post("/api/tasks/{name}/verify", status_code=202)
-    async def verify(name: str, review: bool = True):
+    async def verify(name: str, review: bool = True, embed_repro: bool | None = None):
         _safe(name)
         cf = repo / AE / "tasks" / f"{name}.json"
         if not cf.exists():
             raise HTTPException(404, f"no such task: {name}")
-        if not review:
-            # review is contract state; the core stays the only writer, so amend via core schema
-            c = _jload(cf)
-            if c.get("review"):
-                c["review"] = False
-                jsave(cf, c)
         c = _jload(cf)
+        if not review and c.get("review"):
+            # review is contract state; the core stays the only writer, so amend via core schema
+            c["review"] = False
+            jsave(cf, c)
+        # Per-invocation override (does mutate the contract so dashboard reflects state)
+        if embed_repro is not None and bool(c.get("embed_repro")) != bool(embed_repro):
+            c["embed_repro"] = bool(embed_repro)
+            jsave(cf, c)
         run_id = await runner.create(name, "verify", ["verify", name], c["worktree"])
         return {"id": run_id, "events": f"/api/runs/{run_id}/events"}
 

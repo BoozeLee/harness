@@ -253,6 +253,9 @@ class Runner:
                           "stat": stat, "verdict": "PASS" if passed else "FAIL", "time": int(_now())}
                     if shots:
                         ev["shots"] = shots
+                    if c.get("embed_repro"):
+                        from harness.repro import embed_repro_metadata
+                        ev["repro"] = await asyncio.to_thread(embed_repro_metadata, self.root)
                     await asyncio.to_thread(write_evidence, self.root, ev)
                     status = "succeeded" if passed else "failed"
                     await self._set(run_id, status=status, ended=_now(), exit_code=0 if passed else 1)

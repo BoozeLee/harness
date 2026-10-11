@@ -44,7 +44,9 @@ def cmd_start(a) -> int:
     gates = {k: g for k, g in v["gates"].items() if LVL[g["min_risk"]] <= LVL[a.risk]}
     con = {"name": a.name, "goal": a.goal, "accept": a.accept or [], "risk": a.risk, "branch": br,
            "worktree": str(wt), "base": base, "allowed": a.allow or ["**"], "protected": pol["protected"],
-           "gates": gates, "review": v.get("review", True) and a.risk != "low", "created": int(time.time())}
+           "gates": gates, "review": v.get("review", True) and a.risk != "low",
+           "embed_repro": bool(getattr(a, "embed_repro", False)),
+           "created": int(time.time())}
     jsave(tdir(r) / f"{a.name}.json", con)
     print(f"Worktree : {wt}\nBranch   : {br}\nGates    : {', '.join(gates) or 'none (!)'}")
     print(f"Next     : harness task run {a.name}   |   harness verify {a.name}")
@@ -59,6 +61,10 @@ def cmd_update(a) -> int:
         c["accept"] = a.accept
     if a.allow:
         c["allowed"] = a.allow
+    er = getattr(a, "embed_repro", None)
+    if er is not None:
+        # CLI uses "on"/"off" strings; cmd_start sets a real bool. Normalise.
+        c["embed_repro"] = er if isinstance(er, bool) else er == "on"
     if a.risk and a.risk != c["risk"]:
         c["risk"] = a.risk
         v = jload(r / AE / "verification.json")
@@ -67,6 +73,8 @@ def cmd_update(a) -> int:
     jsave(tdir(r) / f"{c['name']}.json", c)
     print(f"Updated  : {c['name']}\nRisk     : {c['risk']}\nGates    : {', '.join(c['gates']) or 'none (!)'}")
     print(f"Allowed  : {', '.join(c['allowed'])}")
+    if "embed_repro" in c:
+        print(f"Embed    : repro={c['embed_repro']}")
     return 0
 
 
