@@ -84,3 +84,41 @@ def test_find_root_ancestors(tmp_path):
     assert find_root(deep) == tmp_path.resolve()
     # a path that cannot live inside a harness project on any sane system
     assert find_root(Path("/usr/share/man/man1")) is None
+
+
+def test_state_file_stays_inside_the_state_directory(tmp_path):
+    import pytest
+
+    from harness.policy import AE, state_file
+
+    (tmp_path / AE / "tasks").mkdir(parents=True)
+    (tmp_path / "secret.json").write_text("{}")
+    assert state_file(tmp_path, "tasks", "ok.json") == (tmp_path / AE / "tasks" / "ok.json").resolve()
+    for name in ("../../secret.json", "../../../etc/passwd", "/etc/passwd"):
+        with pytest.raises(ValueError):
+            state_file(tmp_path, "tasks", name)
+    (tmp_path / AE / "tasks" / "link.json").symlink_to(tmp_path / "secret.json")
+    with pytest.raises(ValueError):
+        state_file(tmp_path, "tasks", "link.json")
+
+
+def test_the_runner_refuses_an_escaping_task_name_before_queueing(tmp_path):
+    import asyncio
+
+    import pytest
+
+    from harness.policy import AE
+    from harness.runner import Runner, runs_db
+
+    (tmp_path / AE).mkdir()
+    runner = Runner(tmp_path, runs_db(tmp_path))
+
+    async def go():
+        try:
+            with pytest.raises(ValueError):
+                await runner.create("../../../etc/passwd", "verify", ["verify", "x"], str(tmp_path))
+            assert await runner.recent() == []
+        finally:
+            await runner.shutdown()
+
+    asyncio.run(go())

@@ -47,6 +47,22 @@ def find_root(start: Path | str) -> Path | None:
     return None
 
 
+def confine(base: Path | str, p: Path | str) -> Path:
+    """`p` resolved (symlinks included), or ValueError if that lands outside `base`."""
+    root = os.path.realpath(base)
+    real = os.path.realpath(p)
+    if not real.startswith(root + os.sep):
+        raise ValueError(f"path outside {root}: {p}")
+    return Path(real)
+
+
+def state_file(root: Path | str, *parts: str) -> Path:
+    """A file under <root>/.ai-engineering. Callers pass names that came from a
+    request or the CLI; the name checks in front of them are the first wall and
+    this is the second, so no name can read past the state directory."""
+    return confine(Path(root) / AE, Path(root, AE, *parts))
+
+
 def _write_json(p: Path | str, d: dict) -> None:
     p = Path(p)
     p.parent.mkdir(parents=True, exist_ok=True)

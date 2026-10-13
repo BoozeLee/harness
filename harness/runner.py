@@ -24,7 +24,7 @@ from typing import Any
 from harness.evidence import archive_shots
 from harness.evidence import write as write_evidence
 from harness.gitops import changed_files
-from harness.policy import AE, hit, jload
+from harness.policy import AE, hit, jload, state_file
 from harness.shellx import git
 from harness.verify import review
 
@@ -90,6 +90,9 @@ class Runner:
     async def create(self, task: str, kind: str, argv: list[str], worktree: str) -> str:
         if kind not in KINDS:
             raise ValueError(f"unknown run kind: {kind}")
+        # Refuse a task name that would read outside the state directory here,
+        # before anything is queued, so a run is never left half-started.
+        state_file(self.root, "tasks", f"{task}.json")
         return await self._call(self._create(task, kind, argv, worktree))
 
     async def get(self, run_id: str) -> dict | None:
@@ -220,7 +223,7 @@ class Runner:
                         return  # cancelled while waiting
                     await self._set(run_id, status="running", started=_now())
                     await self._emit(run_id, "status", {"status": "running"})
-                    c = jload(self.root / AE / "tasks" / f"{task}.json", versioned=False)
+                    c = jload(state_file(self.root, "tasks", f"{task}.json"), versioned=False)
                     wt = c["worktree"]
                     res = []
                     for k, g in c["gates"].items():
