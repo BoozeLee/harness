@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { chmodSync, copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { defineConfig } from "@playwright/test";
 
@@ -20,14 +20,25 @@ function mainRepoRoot(): string {
 // one there; copy the main checkout's so the server and the vite bundle agree on one token.
 // On a clean checkout (CI) neither exists: mint it here, before either server starts, because
 // `harness serve` reuses an existing file and vite reads it at config load.
+// The file is created once, owner-only from the first byte, with the exclusive "wx" flag:
+// no check-then-write race, and no window where the token sits on disk with default
+// permissions before a chmod. If it already exists (or another process won the race),
+// it is left as it is.
 function syncToken(): void {
   const local = path.join(repoRoot, ".ai-engineering", "serve.token");
-  if (existsSync(local)) return;
   const main = path.join(mainRepoRoot(), ".ai-engineering", "serve.token");
+  let token: string;
+  try {
+    token = readFileSync(main, "utf8");
+  } catch {
+    token = randomBytes(18).toString("base64url");
+  }
   mkdirSync(path.dirname(local), { recursive: true });
-  if (existsSync(main)) copyFileSync(main, local);
-  else writeFileSync(local, randomBytes(18).toString("base64url"));
-  chmodSync(local, 0o600);
+  try {
+    writeFileSync(local, token, { mode: 0o600, flag: "wx" });
+  } catch (e) {
+    if ((e as NodeJS.ErrnoException).code !== "EEXIST") throw e;
+  }
 }
 syncToken();
 
