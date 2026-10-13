@@ -170,3 +170,25 @@ def test_invalid_and_unknown_names(pyrepo: Path):
     assert c.post("/api/tasks/nope/verify", headers=AUTH).status_code == 404
     assert c.post("/api/tasks/nope/run", headers=AUTH, json={"agent": "bogus"}).status_code == 422
     assert c.get("/api/policy", headers=AUTH).status_code == 404  # pyrepo not initialized
+
+
+def test_state_reads_are_confined_to_the_state_directory(tmp_path: Path):
+    # Defense in depth behind NAME_RE: even a path that reached _jload by some
+    # future route cannot read outside .ai-engineering.
+    import pytest
+    from fastapi import HTTPException
+
+    from harness.server import _jload
+
+    state = tmp_path / ".ai-engineering"
+    (state / "tasks").mkdir(parents=True)
+    jsave(state / "tasks" / "ok.json", {"name": "ok"})
+    (tmp_path / "secret.json").write_text('{"schema_version": 1, "token": "x"}')
+    assert _jload(state / "tasks" / "ok.json", state)["name"] == "ok"
+    for escape in (tmp_path / "secret.json", state / ".." / "secret.json", state / "tasks" / ".." / ".." / "secret.json"):
+        with pytest.raises(HTTPException) as info:
+            _jload(escape, state)
+        assert info.value.status_code == 400
+    (state / "tasks" / "link.json").symlink_to(tmp_path / "secret.json")
+    with pytest.raises(HTTPException):
+        _jload(state / "tasks" / "link.json", state)
