@@ -10,7 +10,6 @@ import asyncio
 import contextlib
 import io
 import json
-import os
 import re
 import secrets
 import shutil
@@ -25,7 +24,7 @@ from pydantic import BaseModel, field_validator
 from harness import __version__
 from harness.agents import AGENT_SPECS, AGENTS
 from harness.contract import cmd_start
-from harness.policy import AE, LVL, jload, jsave
+from harness.policy import AE, LVL, confine, jload, jsave
 from harness.runner import TERMINAL, Runner, agent_argv, runs_db
 from harness.scan import scan
 
@@ -63,10 +62,10 @@ def _jload(p: Path, state: Path) -> dict:
     Every route already limits names to NAME_RE, which has no "/", so no request
     can name such a path today. This is the second wall: a future route, or a
     symlink planted in the state directory, still cannot read past it."""
-    root = os.path.realpath(state)
-    real = os.path.realpath(p)
-    if not real.startswith(root + os.sep):
-        raise HTTPException(400, "path outside the harness state directory")
+    try:
+        real = confine(state, p)
+    except ValueError:
+        raise HTTPException(400, "path outside the harness state directory") from None
     try:
         return jload(real)
     except SystemExit as e:
