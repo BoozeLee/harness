@@ -10,6 +10,7 @@ import asyncio
 import contextlib
 import io
 import json
+import os
 import re
 import secrets
 import shutil
@@ -56,9 +57,18 @@ def _probe() -> dict[str, str | None]:
     return {t: _version_of(t) for t in TOOLS}
 
 
-def _jload(p: Path) -> dict:
+def _jload(p: Path, state: Path) -> dict:
+    """Read a state file, refusing any path that resolves outside `state`.
+
+    Every route already limits names to NAME_RE, which has no "/", so no request
+    can name such a path today. This is the second wall: a future route, or a
+    symlink planted in the state directory, still cannot read past it."""
+    root = os.path.realpath(state)
+    real = os.path.realpath(p)
+    if not real.startswith(root + os.sep):
+        raise HTTPException(400, "path outside the harness state directory")
     try:
-        return jload(p)
+        return jload(real)
     except SystemExit as e:
         raise HTTPException(409, str(e.code or "schema error"))
 
@@ -124,6 +134,10 @@ class AgentRun(BaseModel):
 def create_app(repo: Path, token: str, max_parallel: int = 2) -> FastAPI:
     # constructed once per app: the Runner owns its loop thread, so no running loop is needed here
     runner = Runner(repo, runs_db(repo), max_parallel=max_parallel)
+    state = repo / AE
+
+    def _state_jload(p: Path) -> dict:
+        return _jload(p, state)
 
     @asynccontextmanager
     async def lifespan(_app: FastAPI):
@@ -164,16 +178,16 @@ def create_app(repo: Path, token: str, max_parallel: int = 2) -> FastAPI:
     def _jload_or_404(p: Path) -> dict:
         if not p.exists():
             raise HTTPException(404, "not initialized: run `harness init`")
-        return _jload(p)
+        return _state_jload(p)
 
     def _task_rows() -> list[dict]:
         d = repo / AE / "tasks"
         rows = []
         for p in sorted(d.glob("*.json")) if d.is_dir() else []:
-            c = _jload(p)
+            c = _state_jload(p)
             ep = repo / AE / "evidence" / f"{c['name']}.json"
             rows.append({"name": c["name"], "risk": c["risk"], "branch": c["branch"],
-                         "verdict": _jload(ep)["verdict"] if ep.exists() else "unverified"})
+                         "verdict": _state_jload(ep)["verdict"] if ep.exists() else "unverified"})
         return rows
 
     @app.get("/api/v1/projects")
@@ -207,7 +221,7 @@ def create_app(repo: Path, token: str, max_parallel: int = 2) -> FastAPI:
         rc, out = _run_core(cmd_start, args)
         if rc:
             raise HTTPException(400, out.strip() or "task start failed")
-        return {"output": out, "contract": _jload(repo / AE / "tasks" / f"{body.name}.json")}
+        return {"output": out, "contract": _state_jload(repo / AE / "tasks" / f"{body.name}.json")}
 
     @app.post("/api/tasks/{name}/verify", status_code=202)
     async def verify(name: str, review: bool = True):
@@ -217,11 +231,11 @@ def create_app(repo: Path, token: str, max_parallel: int = 2) -> FastAPI:
             raise HTTPException(404, f"no such task: {name}")
         if not review:
             # review is contract state; the core stays the only writer, so amend via core schema
-            c = _jload(cf)
+            c = _state_jload(cf)
             if c.get("review"):
                 c["review"] = False
                 jsave(cf, c)
-        c = _jload(cf)
+        c = _state_jload(cf)
         run_id = await runner.create(name, "verify", ["verify", name], c["worktree"])
         return {"id": run_id, "events": f"/api/runs/{run_id}/events"}
 
@@ -234,7 +248,7 @@ def create_app(repo: Path, token: str, max_parallel: int = 2) -> FastAPI:
         agent = body.agent if body else "claude"
         if not shutil.which(agent):
             raise HTTPException(409, f"{agent} CLI not found; cannot enqueue an agent run")
-        c = _jload(cf)
+        c = _state_jload(cf)
         run_id = await runner.create(name, "agent", agent_argv(repo, name, agent), c["worktree"])
         return {"id": run_id, "events": f"/api/runs/{run_id}/events"}
 
