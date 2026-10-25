@@ -68,6 +68,29 @@ def render(e: dict) -> str:
         f"<pre>{html.escape(x['tail'])}</pre></details>" for x in e["results"])
     acc = "".join(f"<li>{html.escape(x)}</li>" for x in e["accept"]) or "<li>none stated</li>"
     fl = "".join(f"<li><code>{html.escape(f)}</code></li>" for f in e["files"])
+    repro = e.get("repro") or None
+    repro_html = ""
+    if repro:
+        sha = (repro.get("harness_sha") or "—")[:12]
+        ph = (repro.get("packages_sha256") or "—")[:16]
+        gh = (repro.get("github_sha") or "")[:12]
+        gh_li = (f"<li>github_sha: <code>{html.escape(gh)}</code> · "
+                 f"run {html.escape(repro.get('github_run_id') or '—')} "
+                 f"attempt {html.escape(repro.get('github_run_attempt') or '—')}</li>"
+                 if repro.get("github_sha") else "")
+        repro_html = (
+            f"<h3>Reproducibility</h3><ul>"
+            f"<li>captured_at: {html.escape(repro.get('captured_at',''))}</li>"
+            f"<li>harness: v{html.escape(repro.get('harness_version',''))} · "
+            f"sha <code>{html.escape(sha)}</code></li>"
+            f"<li>python: {html.escape(repro.get('python_version',''))} "
+            f"({html.escape(repro.get('python_implementation','') or 'cpython')}) on "
+            f"{html.escape(repro.get('platform',''))}</li>"
+            f"<li>host: {html.escape(repro.get('host',''))}</li>"
+            f"<li>packages: {repro.get('packages_count','—')} wheels · "
+            f"sha256 <code>{html.escape(ph)}…</code></li>"
+            f"{gh_li}</ul>"
+        )
     shots = e.get("shots") or []
     sh_sec = (("<h3>Screenshots</h3><ul>" + "".join(
         f"<li><a href=\"{html.escape(x['file'])}\">{html.escape(x['file'])}</a>"
@@ -83,7 +106,7 @@ details{{background:var(--card);border-radius:8px;padding:.6rem .9rem;margin:.4r
 .ok{{color:var(--ok)}}.bad{{color:var(--bad)}}small{{color:var(--mut);font-weight:400}}pre{{overflow-x:auto;white-space:pre-wrap}}</style>
 <h1>{html.escape(e['task'])}</h1><p>{html.escape(e['goal'])}</p><div class=v>{e['verdict']}</div>
 <p class=mut>{html.escape(e['stat'])}</p><h3>Acceptance criteria (checked by review)</h3><ul>{acc}</ul>
-<h3>Evidence</h3>{rows}{sh_sec}<h3>Files changed</h3><ul>{fl}</ul>"""
+<h3>Evidence</h3>{rows}{sh_sec}<h3>Files changed</h3><ul>{fl}</ul>{repro_html}"""
 
 
 def write(r, ev: dict) -> tuple:

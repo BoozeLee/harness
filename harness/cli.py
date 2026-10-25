@@ -64,6 +64,8 @@ def main(argv=None) -> int:
 
     x = s.add_parser("verify", help="run gates + scope + review, emit evidence")
     x.add_argument("name")
+    x.add_argument("--embed-repro", action="store_true",
+                   help="stamp reproducibility metadata (harness SHA, runtime, packages) into evidence JSON")
     x.set_defaults(f=cmd_verify)
 
     x = s.add_parser("pr", help="gh-backed PR operations for task branches")

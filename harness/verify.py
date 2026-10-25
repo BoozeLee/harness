@@ -48,6 +48,9 @@ def cmd_verify(a) -> int:
           "stat": stat, "verdict": "PASS" if ok else "FAIL", "time": int(time.time())}
     if shots:
         ev["shots"] = shots
+    if getattr(a, "embed_repro", False):
+        from harness.repro import embed_repro_metadata
+        ev["repro"] = embed_repro_metadata(r)
     hp = write_evidence(r, ev)[1]
     for x in res:
         print(f"{'PASS' if x['ok'] else 'FAIL':<5} {x['name']:<20} {x['secs']}s")
